@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# flint's browser playground — see playground/README.md. A separate crate
+# with its own Cargo.lock and target/ (its own workspace, like fuzz/), so
+# its dependencies never show up in the CLI's lockfile, dependency audit,
+# SBOM or published package.
+[package]
+name = "flint-playground"
+version = "0.0.0"
+edition = "2024"
+publish = false
+# examples/ holds the playground's Markdown examples, not Cargo examples.
+autoexamples = false
+
+# cdylib is the WebAssembly module `just playground-build` builds; rlib lets the
+# tests link it natively.
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Named for the library it provides (the main crate's `[lib]` is `flint`),
+# not its `flint-cli` package name, so cargo-machete (`just machete`) can
+# match it to the `use flint::...` lines that use it.
+flint = { package = "flint-cli", path = ".." }
+# Plain data across the JavaScript boundary: the page sends the tree as
+# JSON and gets the result back as JSON.
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+# `just playground-build` runs the wasm-bindgen CLI at exactly the version
+# Cargo.lock pins this to, which the two require.
+wasm-bindgen = "0.2.129"
+
+# Same strictness as the main crate.
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+missing_docs_in_private_items = "warn"
+# The main crate's `restriction` lints and complexity limit — see the
+# comment there.
+unwrap_used = "warn"
+indexing_slicing = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+cognitive_complexity = "warn"
+
+# Smaller over faster for the WebAssembly module: it's downloaded on every
+# visit, and a playground-sized run takes well under a millisecond anyway.
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[workspace]
+members = ["."]

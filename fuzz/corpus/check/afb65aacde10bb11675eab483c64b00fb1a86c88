@@ -1,0 +1,11 @@
+{{ name }}Manager.py
+{{ name }}Presenter.py
+{{ name }}Manager.{{ extension }}
+{{ name }}_{{ name }}.txt
+Foo{{ type }}.py
+---
+HomeManager.py
+DetaihsPresenter.py
+Home_Home.txt
+HomManager.py
+HomeManager

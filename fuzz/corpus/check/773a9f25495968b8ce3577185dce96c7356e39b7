@@ -1,0 +1,2 @@
+we//////{{ name|camel }}/
+  {{ name|pascal }}Manager.///p//////*y.

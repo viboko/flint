@@ -1,0 +1,7 @@
+weird\{file\}.txt
+weird\#file.txt # comment
+\!bang.txt
+---
+weird{file}.txt
+weird#file.txt
+!bang.txt

@@ -1,0 +1,9 @@
+*.py
+.git*
+{{ name }}Manager*.py
+weird\*file.txt
+---
+Hoy
+wdiifr*ele.txt
+notes.tx #\*file.txt
+---

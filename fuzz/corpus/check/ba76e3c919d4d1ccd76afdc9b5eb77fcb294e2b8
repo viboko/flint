@@ -1,0 +1,24 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manage222222222r.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ sx|pascal }}.txt
+{{ screamingKebab }}.sy
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ sx|pascal }}.txt
+{{ screamingKebab }}.sh
+---
+foo/h
+---
+foo/FooManager.py
+foo/BarManager.py
+home_page.txt
+HomePage.txt
+A_XMLFile.txt
+B_XmlF!!!%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!rc/utilinux/main.py
+ts/?befc/d
+c/util.rs
+src!!!!!!!!!!!!!!!!!!!!!!!!!!!SCRIPT.sh

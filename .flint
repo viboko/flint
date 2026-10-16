@@ -1,0 +1,100 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# flint's own .flint file — dogfooding the tool on its own repo.
+# Run `just flint` (or `flint` from the repo root) to check it.
+#
+# fuzz/ and playground/ are self-contained Cargo projects, so each has its
+# own .flint file describing its contents; this file only allows them.
+
+# Rust project
+!Cargo.toml
+!Cargo.lock
+!rust-toolchain.toml            # pinned Rust version, see docs/tooling.md
+!clippy.toml                    # bans I/O outside main.rs, see AGENTS.md
+!src/
+    {{ name|snake }}.rs
+target/**                       # build output; gitignored
+
+# Testing
+!tests/
+    !robot.rs                   # runs e2e/ from `cargo test`, see AGENTS.md
+    !doc_links.rs               # checks docs' line-range links, see AGENTS.md
+!benches/                       # performance benchmarks, see docs/benchmarking.md
+    {{ name|snake }}.rs
+!e2e/                           # Robot Framework suite, see AGENTS.md
+    !requirements.in
+    !requirements.txt
+    !robocop.toml
+    !resources/
+        {{ name|snake }}.resource
+    !tests/
+        {{ name|snake }}.robot
+.venv/**                        # Robot Framework virtualenv; gitignored
+!fuzz/                          # fuzzing harness, see fuzz/.flint
+!playground/                    # browser playground, see playground/.flint
+
+# Docs & project metadata
+!README.md
+!CONTRIBUTING.md
+!SECURITY.md
+!CHANGELOG.md
+!LICENSE-MIT
+!LICENSE-APACHE
+!LICENSES/                      # the same texts, laid out for REUSE, see AGENTS.md
+    *.txt
+!REUSE.toml                     # licenses of files without a header, see AGENTS.md
+!docs/
+    !README.md
+    {{ name|kebab }}.md
+    !agent/                     # step-by-step conventions for agents, see AGENTS.md
+        {{ name|kebab }}.md
+    !images/
+        {{ name|kebab }}.svg
+
+# Tooling / CI
+!justfile
+!mise.toml                      # pinned tool versions, see docs/tooling.md
+!mise.lock
+!.mise/                         # mise's lockfiles for npm tools' own dependencies
+    locks/**
+deny.toml
+!.cargo/
+    mutants.toml                # cargo-mutants config, see docs/mutation-testing.md
+.markdownlint-cli2.yaml
+!lychee.toml
+!_typos.toml
+!.editorconfig                  # whitespace rules, see docs/tooling.md
+!ruff.toml
+!biome.jsonc
+.github/
+    PULL_REQUEST_TEMPLATE.md
+    actions/
+        {{ name|kebab }}/
+            action.yml
+    dependabot.yml
+    zizmor.yml                  # zizmor config, see docs/tooling.md
+    scripts/
+        {{ name|kebab }}.sh
+        {{ name|kebab }}.py
+    workflows/
+        {{ name|kebab }}.yml
+.gitignore
+
+# Agent config
+!AGENTS.md
+CLAUDE.md
+.claude/
+    skills/
+        {{ name|kebab }}/
+            !SKILL.md
+    settings.json               # shared Claude Code hooks, see AGENTS.md
+    hooks/
+        {{ name|kebab }}.sh
+    settings.local.json         # personal; gitignored
+    launch.json                 # personal; gitignored
+
+# Version control
+.git/**                         # not auto-ignored, see docs/flint-file-format.md
+
+# Temporary

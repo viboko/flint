@@ -1,0 +1,10 @@
+src/
+    <name, pkind>
+     {{ a }}-{{ b }}.c/
+    <name, pkind>
+     {{ a }}-{{ b }}.txt
+*txt
+*
+**/
+
+{ {

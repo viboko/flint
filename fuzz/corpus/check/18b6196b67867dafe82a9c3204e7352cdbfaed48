@@ -1,0 +1,6 @@
+src/util.rs
+src/*/main.py
+src/**/*.py
+.git/*c
+---
+src/util.src/qintx/

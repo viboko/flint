@@ -1,0 +1,4 @@
+/*src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-not*el.rs/

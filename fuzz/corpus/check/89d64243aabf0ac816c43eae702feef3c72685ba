@@ -1,0 +1,5 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{A }}Prs   !{{ na2e }}.{{ kind }}
+  q-q.md

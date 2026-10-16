@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# cargo-fuzz's build output, crash/timeout reproducers, and coverage
+# reports. The corpus (corpus/) and seeds (seeds/) are committed.
+/target
+/artifacts
+/coverage

@@ -1,0 +1,4 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py{{ c|screamingSnake }}
+{{ t|titt
+my-th uin

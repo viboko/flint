@@ -1,0 +1,19 @@
+{{ name|camel }}/
+  {{ namnake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title  }}/
+  !{{ name }}Manager.py
+  !{{ name }}srPeenter.py
+---py
+.git/**
+---nager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}/
+  b/
+    c.Y-SCRIPT`sh

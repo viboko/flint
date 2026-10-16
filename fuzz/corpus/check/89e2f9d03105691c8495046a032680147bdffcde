@@ -1,0 +1,6 @@
+ame|cam jae{{ name|camel }}/
+  {{ al }}Manager.{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{  ed/miake }}
+{{ tl o

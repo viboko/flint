@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The Rust toolchain every build, test and lint here uses — locally and
+# in CI — so a new stable release (and the clippy lints that come with
+# it) can't fail a change that didn't touch anything. rustup picks this
+# up automatically. Bump it deliberately; see docs/tooling.md.
+#
+# Recipes that need another toolchain name it explicitly: `just msrv`
+# (Cargo.toml's `rust-version`), and nightly for fuzzing and
+# `just test-minimal-versions`.
+[toolchain]
+channel = "1.99.0"
+profile = "minimal"
+components = ["rustfmt", "clippy"]

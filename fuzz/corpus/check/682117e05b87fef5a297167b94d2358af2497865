@@ -1,0 +1,10 @@
+wesrc/util.rs
+src/*/main.py
+src/**/*.py
+.git/**
+---
+src/it/x.py
+src/notes.txt
+.git/objects/abi/cdef
+util.rs
+r{

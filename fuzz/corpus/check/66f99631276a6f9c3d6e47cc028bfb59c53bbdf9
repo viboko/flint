@@ -1,0 +1,21 @@
+a/
+  b/
+    c.tx  t
+---src/util.rs
+src/*/main.py
+src/**/*.py
+.git/**
+---
+src/util.rs
+src/linux/macpinyr
+./slixnu/nested/mai
+.flint
+a
+otes.txt
+.git/objects/
+a//x
+a/./y
+a/.
+/ab/cdef
+util
+.rs

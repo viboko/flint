@@ -1,0 +1,7 @@
+*.py
+.git*
+{{ name }}Manager*.py
+weird\*fi{{ nalme }}/
+  !{{ nam0e }}Manager.py
+  !{{ name }}P---ome.py
+.hidden.pc/y*

@@ -1,0 +1,17 @@
+{{ name|camel }}/
+a n  {{me|pascal }}Mafeger.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }},{{ q|screamingDot }}.cfg
+{{ r|screamingKebab }}.sh
+---
+foo/FooManager.py
+foo/BarXMLFile.tx|
+B_XmlFile.txt
+my-thing.SOME_VALUG
+Hello World Foo-Bar.md
+a.b.C.D.cfg
+MY-SCRIPT.sh

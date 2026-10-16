@@ -1,0 +1,8 @@
+*{{ nale|camel }}/
+  {{ name|pascal }}Man
+s.txtt
+---
+.flint
+a
+a/b
+/.i

@@ -1,0 +1,8 @@
+{{ name|camel }}/
+  {{ name|pascal }}r.md
+a.b.t
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screaminoSnake }}
+{{ t|titlFile.txt
+my-thi_{{ x|pasca.sh

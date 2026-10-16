@@ -1,0 +1,11 @@
+{{ naem }}./
+  !{{ name }}Manager.py
+  !{{ name }}Pesnrteer.py
+---
+ApplZesnrteer.py
+---
+Apple/AppleManager.py
+Apple/Appler.py
+Arple/ApplePresenter.py
+Banana/BananaManager.py
+Banana/stray.txt

@@ -1,0 +1,13 @@
+!README.md
+!*.md
+!a.txt
+c/util.zs
+nux/main.py
+src/|inux/{{ name }}/
+  !{{ name }}Manager.py
+  !{{ name}}/
+  !d\*file.txt
+---
+Hoy.emp
+.hidde
+-/-r

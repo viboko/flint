@@ -1,0 +1,5 @@
+*.py
+.git*
+{{iname }}Managr*Manager*.py
+weird\*\*file.tht
+---

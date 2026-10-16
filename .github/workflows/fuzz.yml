@@ -1,0 +1,220 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Fuzz
+
+# Two jobs (see docs/fuzzing.md):
+#
+# - `replay`, on PRs and pushes to main: runs every committed seed and
+#   corpus input through the fuzz target once. Deterministic and quick —
+#   it never generates new inputs, so it can't fail because of a bug the
+#   PR didn't touch.
+# - `extend`, weekly (or on demand): fuzzes main for 30 minutes to grow
+#   the corpus, then opens (or updates) a PR with the new inputs, as the
+#   bot app so that CI runs on it. A crash fails the job instead, with the
+#   crashing input uploaded as an artifact; nothing is pushed.
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "fuzz/**"
+      - "justfile"
+      - "mise.toml"
+      - "mise.lock"
+      - ".github/actions/**"
+      - ".github/workflows/fuzz.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "fuzz/**"
+      - "justfile"
+      - "mise.toml"
+      - "mise.lock"
+      - ".github/actions/**"
+      - ".github/workflows/fuzz.yml"
+  schedule:
+    - cron: "41 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: How long to fuzz for, in minutes
+        default: "30"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  replay:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # cargo-fuzz needs nightly for its sanitizer flags. Unpinned beyond
+      # "latest nightly", so a broken nightly could fail this job for a
+      # reason unrelated to the PR — rare, and fixed by rerunning later.
+      # Installed with rustup directly, not an action (see ci.yml), and
+      # made the job's toolchain (overriding rust-toolchain.toml) so
+      # rust-cache's key tracks the nightly in use.
+      - name: Install Rust nightly
+        run: |
+          rustup toolchain install nightly --profile minimal --no-self-update
+          echo "RUSTUP_TOOLCHAIN=nightly" >> "$GITHUB_ENV"
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: fuzz -> target
+
+      # mise builds cargo-fuzz from source (it publishes no Apple Silicon
+      # binary, so mise.toml installs it with cargo everywhere) and caches
+      # the result, so that's once per version.
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just cargo:cargo-fuzz
+
+      - name: Replay seeds and corpus
+        run: just fuzz-replay
+
+  extend:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    concurrency:
+      group: fuzz-extend
+    env:
+      # One rolling branch/PR: each run force-pushes it, carrying forward
+      # anything an earlier, still-unmerged run found (see "Pick up...").
+      BRANCH: fuzz-corpus-update
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Install Rust nightly
+        run: |
+          rustup toolchain install nightly --profile minimal --no-self-update
+          echo "RUSTUP_TOOLCHAIN=nightly" >> "$GITHUB_ENV"
+
+      # No rust-cache in this job, and no mise cache either, deliberately:
+      # it ends by pushing with a write token, so it shouldn't restore
+      # anything a PR run could have written. A cold build of the harness
+      # and cargo-fuzz takes a couple of minutes, next to 30 of fuzzing.
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just cargo:cargo-fuzz
+          cache: "false"
+
+      - name: Check for an unmerged earlier update
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh api "repos/$REPO/branches/$BRANCH" --silent 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.previous.outputs.exists == 'true'
+        with:
+          ref: fuzz-corpus-update
+          path: previous
+          sparse-checkout: fuzz/corpus
+          persist-credentials: false
+
+      # Corpus files are named by a hash of their contents, so copying
+      # can't clobber anything; the minimize step after fuzzing drops
+      # whatever turns out to be redundant.
+      - name: Pick up the earlier update's corpus
+        if: steps.previous.outputs.exists == 'true'
+        run: |
+          mkdir -p fuzz/corpus/check
+          if [ -d previous/fuzz/corpus/check ]; then
+            cp -n previous/fuzz/corpus/check/* fuzz/corpus/check/ 2>/dev/null || true
+          fi
+          rm -rf previous
+
+      - name: Fuzz
+        env:
+          MINUTES: ${{ inputs.minutes || '30' }}
+        run: just fuzz "$MINUTES"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: fuzz-crash
+          path: fuzz/artifacts
+          if-no-files-found: ignore
+
+      - name: Check for corpus changes
+        id: changes
+        run: |
+          git add fuzz/corpus
+          if ! git diff --cached --quiet; then
+            {
+              echo "changed=true"
+              echo "added=$(git diff --cached --name-status | grep -c '^A' || true)"
+              echo "removed=$(git diff --cached --name-status | grep -c '^D' || true)"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      # Minted only now, after fuzzing, and scoped to what the next step
+      # needs. Its PRs, unlike ones opened with the workflow's own token,
+      # trigger CI.
+      - id: app-token
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.BOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Push and open or update the PR
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          REPO: ${{ github.repository }}
+          ADDED: ${{ steps.changes.outputs.added }}
+          REMOVED: ${{ steps.changes.outputs.removed }}
+          MINUTES: ${{ inputs.minutes || '30' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          bot_id=$(gh api "users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git switch -q -c "$BRANCH"
+          git commit -q -m "Update fuzz corpus" -m "From $RUN_URL"
+
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            push -q --force origin "$BRANCH"
+
+          cat > body.md <<EOF
+          The weekly fuzzing run ([log]($RUN_URL)) fuzzed \`main\` for $MINUTES minutes and found inputs that reach code the committed corpus didn't: **$ADDED added, $REMOVED removed** after minimizing. None of them crashed flint.
+
+          The files under \`fuzz/corpus/check/\` are data only, replayed by the Fuzz check on every PR. See [docs/fuzzing.md](https://github.com/$REPO/blob/main/docs/fuzzing.md).
+
+          This branch is force-pushed by each run until merged, and carries forward anything earlier unmerged runs found.
+          EOF
+
+          pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --repo "$REPO" --body-file body.md
+          else
+            gh pr create --repo "$REPO" --base main --head "$BRANCH" \
+              --title "Update fuzz corpus" --body-file body.md
+          fi

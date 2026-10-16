@@ -1,0 +1,5 @@
+!READM+.md+!*.md
+!src/util.rs~\t.txt
+---
+CHANGELOG.mitd
+!irc/

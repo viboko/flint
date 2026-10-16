@@ -1,0 +1,6 @@
+{{ name }}/
+  !{{ name }}Manager.py
+  !{{ name }}Pesnrteer.py
+---
+.py
+  !{{ name }}PesnrteerBananna/sray.txt

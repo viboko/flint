@@ -1,0 +1,42 @@
+# Copyright and license for the files that can't carry them in a
+# comment of their own, per the REUSE spec (https://reuse.software).
+# Every other file states them in an SPDX header at its top; the license
+# texts are in LICENSES/. `just reuse` checks every file is covered.
+version = 1
+
+# Prose, and the playground examples, which are Markdown its tests read
+# whole.
+[[annotations]]
+path = ["**/*.md"]
+SPDX-FileCopyrightText = "The flint contributors"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# Formats with no comment syntax, and the files tools generate.
+[[annotations]]
+path = [
+    "**/*.json",
+    "**/Cargo.lock",
+    "mise.lock",
+    ".mise/locks/**",
+    "e2e/requirements.txt",
+]
+SPDX-FileCopyrightText = "The flint contributors"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# The fuzzer's inputs: a header would change what they test.
+[[annotations]]
+path = ["fuzz/corpus/**", "fuzz/seeds/**"]
+SPDX-FileCopyrightText = "The flint contributors"
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+
+# Images, and the playground site's small metadata files.
+[[annotations]]
+path = [
+    "docs/images/**",
+    "playground/web/favicon/**",
+    "playground/web/CNAME",
+    "playground/web/robots.txt",
+    "playground/web/sitemap.xml",
+]
+SPDX-FileCopyrightText = "The flint contributors"
+SPDX-License-Identifier = "MIT OR Apache-2.0"

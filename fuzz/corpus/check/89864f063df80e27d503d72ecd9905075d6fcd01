@@ -1,0 +1,15 @@
+!rc/util.rs
+src/*aiѕn.py
+src/**/*.py
+.git/**
+---nager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}/
+  b/
+    c.*
+---
+src/uto

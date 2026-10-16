@@ -1,0 +1,87 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The library is pure: it reaches a directory tree only through
+# `run::DirectoryTree`, and returns what to print rather than printing it
+# (see AGENTS.md's "Code shape"). These bans make that a build failure
+# instead of a convention. Clippy can't ban a whole module, so each item is
+# listed.
+#
+# Clippy reads this file for every crate under this directory — the fuzz
+# target and the playground too. The files whose job is I/O (`src/main.rs`,
+# `tests/*.rs`, `benches/e2e.rs`, `playground/build.rs`), and those whose
+# harness macro expands to some (`benches/logic.rs`,
+# `fuzz/fuzz_targets/check.rs`), opt out with an `#![allow(...)]` at the
+# top saying why.
+
+disallowed-methods = [
+    # std::fs
+    { path = "std::fs::canonicalize", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::copy", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::create_dir", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::create_dir_all", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::exists", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::hard_link", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::metadata", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::read", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::read_dir", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::read_link", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::read_to_string", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::remove_dir", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::remove_dir_all", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::remove_file", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::rename", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::set_permissions", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::symlink_metadata", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::write", reason = "the library does no file-system access; keep I/O in main.rs" },
+    # `Path` methods that query the disk.
+    { path = "std::path::Path::canonicalize", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::exists", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::is_dir", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::is_file", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::is_symlink", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::metadata", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::read_dir", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::read_link", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::symlink_metadata", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::path::Path::try_exists", reason = "the library does no file-system access; keep I/O in main.rs" },
+    # std::process
+    { path = "std::process::abort", reason = "the library returns errors rather than ending the process; keep that in main.rs" },
+    { path = "std::process::exit", reason = "the library returns errors rather than ending the process; keep that in main.rs" },
+    # Writing to the terminal by hand, in place of the macros below.
+    { path = "std::io::stderr", reason = "the library returns output lines rather than printing them; keep printing in main.rs" },
+    { path = "std::io::stdin", reason = "the library takes its input as arguments; keep reading it in main.rs" },
+    { path = "std::io::stdout", reason = "the library returns output lines rather than printing them; keep printing in main.rs" },
+]
+
+disallowed-types = [
+    { path = "std::fs::DirBuilder", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::DirEntry", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::File", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::OpenOptions", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::fs::ReadDir", reason = "the library does no file-system access; keep I/O in main.rs" },
+    { path = "std::process::Child", reason = "the library runs no other programs" },
+    { path = "std::process::Command", reason = "the library runs no other programs" },
+]
+
+disallowed-macros = [
+    { path = "std::dbg", reason = "the library returns output lines rather than printing them; keep printing in main.rs" },
+    { path = "std::eprint", reason = "the library returns output lines rather than printing them; keep printing in main.rs" },
+    { path = "std::eprintln", reason = "the library returns output lines rather than printing them; keep printing in main.rs" },
+    { path = "std::print", reason = "the library returns output lines rather than printing them; keep printing in main.rs" },
+    { path = "std::println", reason = "the library returns output lines rather than printing them; keep printing in main.rs" },
+]
+
+# The `restriction` lints in `Cargo.toml` that ban panicking code are for
+# code that runs on a user's tree. A unit test fails by panicking, so it's
+# exempt.
+allow-unwrap-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+
+# Complexity caps. Every function is under them now (the most complex
+# scores 16, the longest is 100 lines — `flint_file::parse`); a new one
+# that isn't should be split up rather than the cap raised. Clippy's
+# defaults are 25 and 100.
+cognitive-complexity-threshold = 20
+too-many-lines-threshold = 100

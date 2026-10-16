@@ -1,0 +1,17 @@
+src/util.rs
+src/*/main.py
+src/**/*.py
+.git/**
+---
+git/x.py
+src/notes.txt
+.git/objects/ab/cdefsrc/**/*.py
+.git/**
+---
+src/uti`l.rs
+src/linux/main.py
+src/linux/nested/main.py
+src/a/b/c/d.py
+src/.git/x.ptes.txt
+.git/o
+util.rs

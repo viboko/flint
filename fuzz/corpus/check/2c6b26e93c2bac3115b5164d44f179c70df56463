@@ -1,0 +1,6 @@
+{{ name }}/
+  !!{{ nam0e }}Manager.py
+  !{{ name }}Presenter.py
+---
+Apple/ApManager.py
+Banana/stray.txt

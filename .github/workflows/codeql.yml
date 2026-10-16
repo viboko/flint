@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: CodeQL
+
+# Static analysis for security bugs, with results in the repo's Security
+# tab (and as annotations on PRs). Covers the Rust code, the workflows
+# themselves (overlapping zizmor, from a different angle), and the
+# Python benchmark-report script under .github/scripts/.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so new CodeQL queries run even when nothing has changed.
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    # Code scanning is only free for public repositories; until this one
+    # is public, uploading results would fail, so skip instead. `!= true`
+    # rather than `== false` so that, once public, the job runs even for
+    # an event whose payload doesn't carry the field.
+    if: github.event.repository.private != true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload results to the Security tab
+    strategy:
+      fail-fast: false
+      matrix:
+        # All three are analysed straight from source (`build-mode:
+        # none`), so no Rust toolchain or build step is needed here.
+        language: [rust, actions, python]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: /language:${{ matrix.language }}

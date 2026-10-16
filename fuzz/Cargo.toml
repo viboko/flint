@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# flint's fuzzing harness — see docs/fuzzing.md. A separate crate (and its
+# own workspace) because cargo-fuzz needs a nightly toolchain and
+# sanitizer flags that the main crate shouldn't depend on.
+[package]
+name = "flint-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+# Named for the library it provides (the main crate's `[lib]` is `flint`),
+# not its `flint-cli` package name, so cargo-machete (`just machete`) can
+# match it to the `use flint::...` lines that use it.
+flint = { package = "flint-cli", path = ".." }
+
+[[bin]]
+name = "check"
+path = "fuzz_targets/check.rs"
+test = false
+doc = false
+bench = false
+
+# Same strictness as the main crate. Not `unsafe_code = "forbid"`, though:
+# `fuzz_target!` expands to an `unsafe` extern "C" entry point for
+# libFuzzer to call, so this crate can't forbid it.
+[lints.rust]
+missing_docs = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+missing_docs_in_private_items = "warn"
+# The main crate's `restriction` lints and complexity limit — see the
+# comment there.
+unwrap_used = "warn"
+indexing_slicing = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+cognitive_complexity = "warn"
+
+[workspace]
+members = ["."]

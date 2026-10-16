@@ -1,0 +1,4 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ id|snake }}/txt
+A_{{ x|per_poBan?aname sr

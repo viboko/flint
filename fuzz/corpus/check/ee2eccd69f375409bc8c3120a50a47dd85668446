@@ -1,0 +1,26 @@
+!R---/--
+--file
+-l
+.rs
+l
+.rs
+\src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notel.rs
+src/main.py
+srcpy
+ina
+
+srzc
+a/b/itx.pc/nc.tpc/not/bcdeflina
+
+ta/b
+a/b*
+r--s-
+c/uitl.rs
+src/main.py
+src/**/*.py
+.git/**
+---
+srzc/u*trta.txt

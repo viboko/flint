@@ -1,0 +1,6 @@
+{{ name }}/
+  !!{{ nam0e }}py
+  !{{ name }}Presenter.py
+---
+ApplePresenter.py
+Banana/BananaMay.txt

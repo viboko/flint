@@ -1,0 +1,6 @@
+src/
+    <name, kind>
+        !{{ Name }}.{{ kind }}
+        {{ nane|snake }}-notel.rs
+src/main.in.py
+src/**/*.py ilx .

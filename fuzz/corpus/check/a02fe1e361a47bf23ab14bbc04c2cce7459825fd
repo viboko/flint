@@ -1,0 +1,11 @@
+{{ fame }}/
+  !{{ natle }} {{ u|train }}.md
+{{ p|dot }}.{{aminoDot }}src/*/main.py
+src/**/*.py
+.git/**
+---
+src/util.rs
+src/linux/main.py
+rc.gat/x.py
+srsuL*c/
+/rmaic/n

@@ -1,0 +1,14 @@
+{{ e|pascal }}Mafager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}.{{ q|screamingDot }}.cfg
+{{ r|screamingKebab }}.s{{ t|title }} {{ u|train }}.md
+{{ p|dot }}.{{ q|screamingDot }}.cfg
+{{ r|LFile.tx|
+B_XmlFile.txt
+my-thiBar.md
+a.b.C.D.cfg
+MY-SCRIPT.sh

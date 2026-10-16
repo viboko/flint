@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# typos config — run via `just typos`. See docs/tooling.md.
+
+[files]
+# Check .github/ and .claude/ too (.gitignore still applies).
+ignore-hidden = false
+extend-exclude = [
+  # Walking hidden directories would otherwise take in git's own.
+  ".git/",
+  # Fuzzer-generated inputs: mutated .flint files, full of near-miss
+  # words like `nam` and `importan`. The hand-written fuzz/seeds/ are
+  # still checked.
+  "fuzz/corpus/",
+  # Generated lockfiles, made of other projects' package names (such
+  # as npm's `devlop`) and hashes.
+  "mise.lock",
+  ".mise/locks/",
+]
+
+[default.extend-words]
+# The start of `café`, written with its `é` escaped (`caf\u{e9}`,
+# `caf\xE9`) in the tests and docs about accented names.
+caf = "caf"

@@ -1,0 +1,19 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ name|snake }}-EADME.md
+<x>
+ }}.md
+\<a\>.txt
+---
+src/
+src/a.rs
+src/a-notes.rs
+src/b.rs
+src/a/
+src/a/a.md
+src/README.md
+q.md
+q-q.md
+q-r.md
+<a>.txt

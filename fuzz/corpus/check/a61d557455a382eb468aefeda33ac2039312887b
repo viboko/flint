@@ -1,0 +1,21 @@
+src/util.rsnager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}.{{ q|screamingDot }}.cfg
+{{ r|screamingKebab }}.sh
+---
+foo/FooManager.py
+foo/BarManager.py
+home_
+src/*/main.py
+src/**/*.py
+.gi.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{t/((((((((((((((((((((((((((((((((((((((**
+---main.py
+wesrc/util.rs
+src///*.py

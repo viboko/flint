@@ -1,0 +1,23 @@
+a/
+  b/
+    c.tx  t
+---src/ut/a/b/c/d.py
+src/.git/x.ry
+src/notes.txt
+.git/objects/
+a//x
+a/./y
+a/..2z
+/abs
+/ab/i
+.flint
+a
+c/*p.y
+*/*.git/**
+---
+src/*p.y
+*/.txpn4py
+-sr*-
+s,,,,,ut/a/b/c/d.py
+src/.git/lix.py
+src/nonux/ten

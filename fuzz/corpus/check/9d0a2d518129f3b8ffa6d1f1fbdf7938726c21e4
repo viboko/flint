@@ -1,0 +1,17 @@
+{{ name }}/
+ a/
+  b/
+    c.tx  t !{{ name }}Manager.py
+  !{{ name }}Pesnrteer.py
+---
+Apple/src/*/main.src/py
+/mai
+.flint
+a
+a/b
+a/b/c.txp
+  util.rs
+  *binn2py
+src/a/b/c/d.py
+src/.git/x.py/
+

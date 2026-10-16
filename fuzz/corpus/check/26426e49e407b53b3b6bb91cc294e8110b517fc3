@@ -1,0 +1,20 @@
+a/
+  b/
+    c.*
+---
+src/util.rssy
+2/../z
+/.py
+src/notes.txsrctes.txt
+.git/bjects/
+a//x
+a/./y
+a/../z
+/abs
+/ab/cdef
+ut./y
+a/../z
+/abs
+/ab/cdef
+util
+.rs

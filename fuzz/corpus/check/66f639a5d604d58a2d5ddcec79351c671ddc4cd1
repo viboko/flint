@@ -1,0 +1,9 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}.{{ q|scr%amingDot }}.cfg
+{{ r|s

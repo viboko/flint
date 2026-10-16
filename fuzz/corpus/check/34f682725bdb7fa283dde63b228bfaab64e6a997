@@ -1,0 +1,17 @@
+.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ uscreamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}.{{amingDot }}.cfg
+{{ r|screamingKebab }}.sh
+---
+fog.SOME_VALUG
+Hello World Foo-?ar.md
+a|train }}.md
+{{ p|dot }}.{{amingDot }}.cfg
+{{ r|screamingKebab }}.sh
+---
+fog.SOME_VALUG
+Hello World Foo-?ar.md
+a.b.C.D.cfg
+MY-SCRIPT.sh

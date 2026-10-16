@@ -1,0 +1,9 @@
+a/
+  b/
+    c.tx  t
+---src/util.r{{ name }}/
+  !{{ name }}ManAger.py
+  !xx.py
+Apple/ApplePresenter.p
+---src/util.r{{ name }}/
+  !{{.prs

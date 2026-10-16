@@ -1,0 +1,40 @@
+!R---/--
+--file
+-l
+.rs
+l
+.rs
+\src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notel.rs
+src/main.py
+srcpy
+.git/*  x le
+-l
+.rs
+l
+.rs
+\src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notel.rs
+src/main.py
+srcpy
+.gi
+!src/utiL.rs
+\
+---
+CHANGELOG.b/itx.pc/nc.tpc/notb/cdeflina
+
+ta/b
+a/b*
+r--s-
+c/utgl.rs
+src/main.py
+src/**/*.py
+.git/**
+---
+rc/u*tit~at.txt
+
+.-c/

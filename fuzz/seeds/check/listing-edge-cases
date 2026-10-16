@@ -1,0 +1,13 @@
+a/
+  b/
+    c.txt
+---
+.flint
+a
+a/b
+a/b/c.txt/
+a//x
+a/./y
+a/../z
+/abs
+

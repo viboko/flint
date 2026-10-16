@@ -1,0 +1,11 @@
+*.py
+.git*
+{{ name }}Manager*.py
+weird\*fi{{ nalme }}/
+  !{{ nam0e }}Manager.py
+  !Manager*.py
+weird\*fi{{ nalme }}/
+  !{{ nam0e }}Manager.{{ name }}Pre*.txt
+---
+Home.py
+.hidden.pc/y*

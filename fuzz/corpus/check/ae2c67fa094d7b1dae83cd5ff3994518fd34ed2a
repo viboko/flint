@@ -1,0 +1,18 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ idasnake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}.{{ q|screamingDot }}.cfg
+{{ rin }}.md
+{{ p|dot }}.{{ q|screamingDot }}.cfg
+{{ r|screamingKebab }}.sh
+---
+foo/FooManager.py
+foo/Bay
+home_my-thing.SOME_VALUE
+Hello World Foo-Bar.md
+a.b.C.D.cfg
+MY-SCRIPT.sh

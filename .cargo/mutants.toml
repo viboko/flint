@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# cargo-mutants config — run via `just mutants`, which also sets
+# FLINT_ROBOT so `cargo test` runs the e2e suite too (tests/robot.rs).
+# See docs/mutation-testing.md.
+
+# mutants.out/ under target/, rather than at the repo root where the
+# root .flint would (rightly) flag it; `just clean` clears it too.
+output = "target"
+
+# Mutants no test can catch, each with why. Matched by exact name, line
+# number included (`just mutants --list` shows the names): if the code
+# moves, the pattern stops matching and the mutant shows up as missed in
+# the next run, to be re-checked and updated here, rather than the
+# pattern silently starting to hide a different mutant.
+exclude_re = [
+    # Equivalent: the root frame's indent is "", which no indent is
+    # shorter than, so the loop already stops at the root on its own.
+    '^src/flint_file\.rs:671:27: replace > with >= in resolve_indent$',
+
+    # Equivalent: at exactly the prefix's length, components_match_partial
+    # matches the whole prefix just like the match_components it would
+    # otherwise reach, and there are no absorbed components to check.
+    '^src/template\.rs:626:34: replace < with <= in Template::matches_directory_prefix$',
+    '^src/template\.rs:687:22: replace < with <= in Template::rebase_beneath$',
+
+    # Equivalent in effect: giving up one step sooner, out of 100,000, on
+    # a search that's only ever that long for pathological input.
+    '^src/checker\.rs:590:23: replace > with >= in find_group_value::search$',
+
+    # Equivalent: it only differs for a missing entry with the same line
+    # and name as the one being added, and no two are ever the same.
+    '^src/run\.rs:229:57: replace > with >= in missing_position$',
+
+    # Equivalent: a one-component rule's only instance is the folder its
+    # .flint file is in, so checking it per instance is checking it once,
+    # as the anywhere-on-disk check does — and when a nested .flint file
+    # takes over a folder it names, that folder still matches it.
+    '^src/template\.rs:572:32: replace > with >= in Template::is_checked_per_instance$',
+]

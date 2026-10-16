@@ -1,0 +1,10 @@
+{{ name }}/
+  !{{ nam0e }}Manager.py
+  !{{ name }}Pre*/main.py
+src/**/*.py
+.git/**
+---
+src/util.rs
+src/linux/main.py
+src/linux/nested/main.py
+src/stray.txt

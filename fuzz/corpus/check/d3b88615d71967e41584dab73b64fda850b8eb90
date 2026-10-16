@@ -1,0 +1,7 @@
+!RE
+s/
+
+!*.md
+!t.txt
+---
+CHANGELOG/

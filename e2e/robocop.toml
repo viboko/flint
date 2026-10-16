@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Robocop config — run via `just robocop` (lint + format check). See
+# docs/tooling.md.
+
+[tool.robocop]
+# Under the repo's target/ rather than Robocop's default .robocop_cache/
+# in the current directory, which the root .flint would (rightly) flag;
+# `just clean` clears it too. Relative to this file.
+cache_dir = "../target/robocop-cache"
+
+[tool.robocop.lint]
+ignore = [
+  # Test names here are written to be read as a sentence saying what's
+  # being checked; a [Documentation] that restates the name is noise.
+  # Tests that need more than the name say add one anyway.
+  "DOC02",
+]

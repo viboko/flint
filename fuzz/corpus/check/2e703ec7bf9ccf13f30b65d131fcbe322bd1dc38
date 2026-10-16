@@ -1,0 +1,9 @@
+src /  
+ <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}/el.rcfg
+{{ r|screamingKebab }}.sh
+---
+foo/F#ooMann.py
+srcpy
+.ager

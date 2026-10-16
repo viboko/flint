@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The Python packages the e2e suite needs, as exact versions. Edit this,
+# not requirements.txt: `just pip-lock` compiles it into
+# requirements.txt, which also pins every transitive dependency and the
+# hash of each file pip may download, and is what `just venv` installs.
+robotframework==7.5
+# Linter and formatter for the suite itself — `just robocop`. Needs
+# Python 3.10+, which `just venv` checks for.
+robotframework-robocop==9.1.0
+# Checks every file in the repo states its copyright and license (the
+# REUSE spec) — `just reuse`. The extra is its pure-Python way of
+# reading files of unknown encoding. Not part of the e2e suite, but
+# this is the repo's one pinned, hash-checked Python environment.
+reuse[charset-normalizer]==6.2.0

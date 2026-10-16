@@ -1,0 +1,4 @@
+atxt
+A_{{ x|pascal }}.txt
+B_{{ x|pas%\!importa}{  id|s }}
+{{

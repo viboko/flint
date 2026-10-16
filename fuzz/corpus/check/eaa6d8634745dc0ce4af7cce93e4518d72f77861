@@ -1,0 +1,14 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ id|snake }}.txtA_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ screamingKebab }}.qh
+---
+foo/FohoManager.py
+foo/Bar.py
+home_page.txt
+HomePage.txt
+A!REtxt
+HomePage.txt
+Acamel }}/
+ {{ anager.e.pt

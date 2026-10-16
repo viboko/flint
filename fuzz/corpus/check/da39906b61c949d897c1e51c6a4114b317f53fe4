@@ -1,0 +1,45 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+---*{{ name }}/
+{{ n}}/
+  !   <name, kind>
+        !{{ name }}.{{ kind }}
+---*{{ name }}/
+{{ n}}/
+  !{{ name }}Managortant.        {{ nane|snake }}-notel.rs
+src/main.py
+srcpy
+.git/**
+r--s-
+c/util.rs
+src/main.py
+src/**/*.py
+.git/**
+---
+src/u*tizinux/mmd
+!rtant.tin.py
+src/**/*.py
+.ain.ps.{{ kind/.py
+src/**/*.py
+.git/*}/
+{{ n}}/
+  !   <name, kind>
+        !{{ name }b/cdef
+uted/mai
+.flin/
+a//x
+a/./y
+a/8./z
+/abs
+/ab/cdeb
+uted/maiz
+/abs
+/ab/cdef
+uted/mai
+.f}.{{ kind }}
+---*{{ name*
+---
+src/util.<<<c/d.pc/util/a/{ name }}/
+b/c/UUUr.md
+<a>.

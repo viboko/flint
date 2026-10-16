@@ -1,0 +1,151 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Benchmark (publish)
+
+# The write-access half of the PR benchmark pipeline (see bench.yml for
+# the read-only half, and docs/benchmarking.md for why it's split).
+#
+# This trigger always runs this file as it is on `main` — never a PR's
+# version of it — so a PR, including one from a fork, can't change what
+# runs here with a write token. Nothing here checks out or executes PR
+# code: it only reads the artifact bench.yml uploaded, and treats its
+# contents as untrusted data. Keep it that way. (Removing the reports
+# when the PR closes is pages-cleanup.yml's job.)
+#
+# zizmor flags the trigger as dangerous in general; the above is why
+# it's safe here, so that finding is suppressed on the next line.
+on: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows: [Benchmark]
+    types: [completed]
+
+permissions: {}
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  REPO: ${{ github.repository }}
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # download the artifact from bench.yml's run
+      contents: write # push reports to gh-pages
+      pages: read # look up the Pages URL
+      pull-requests: write # post/update the comment
+    steps:
+      # The default branch's scripts, not the PR's — see the top of this
+      # file. First, so the failure step below can always use them.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Download results
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: gh run download "$RUN_ID" --repo "$REPO" --name bench-result --dir bench-result
+
+      # The artifact names its own PR, so check that claim: the PR must
+      # exist and its head must be the commit bench.yml just ran on. This
+      # stops a fork from pointing the comment at someone else's PR, and
+      # also drops results that a newer push has already superseded.
+      - name: Validate
+        id: pr
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(cat bench-result/pr-number)
+          if ! [[ "$pr" =~ ^[0-9]+$ ]]; then
+            echo "::error::Artifact has an invalid PR number."
+            exit 1
+          fi
+          pr_json=$(gh api "repos/$REPO/pulls/$pr")
+          if [ "$(jq -r .head.sha <<<"$pr_json")" != "$HEAD_SHA" ]; then
+            echo "::notice::PR #$pr has moved on since this run — leaving it to the newer run."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          status=$(cat bench-result/status)
+          if [ "$status" != ran ] && [ "$status" != skipped ]; then
+            echo "::error::Artifact has an invalid status."
+            exit 1
+          fi
+          # Only same-repo PRs (authored by someone with write access) get
+          # their reports hosted on this repo's Pages site: a fork's
+          # benchmark code also wrote its report pages, so hosting those
+          # would let anyone publish arbitrary HTML under this repo's
+          # Pages domain. Forks' links point at the workflow run instead.
+          same_repo=false
+          if [ "$(jq -r '.head.repo.full_name // ""' <<<"$pr_json")" = "$REPO" ]; then
+            same_repo=true
+          fi
+          {
+            echo "number=$pr"
+            echo "status=$status"
+            echo "same_repo=$same_repo"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish reports to gh-pages
+        id: pages
+        if: >-
+          steps.pr.outputs.stale != 'true' &&
+          steps.pr.outputs.status == 'ran' &&
+          steps.pr.outputs.same_repo == 'true'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
+          trusted/.github/scripts/gh-pages.sh "pr-$PR/benchmarks" bench-result/site
+          # Left unset if Pages isn't enabled yet: the comment then links
+          # to the workflow run instead. Test the exit status, not the
+          # output: on a 404, gh prints the error JSON to stdout.
+          if url=$(gh api "repos/$REPO/pages" --jq .html_url 2>/dev/null); then
+            echo "url=$url" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post or update comment
+        if: steps.pr.outputs.stale != 'true'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          STATUS: ${{ steps.pr.outputs.status }}
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          report_base=""
+          if [ -n "$PAGES_URL" ]; then
+            report_base="${PAGES_URL%/}/pr-$PR/benchmarks"
+          fi
+          python3 trusted/.github/scripts/bench-report.py --fill bench-result/comment.md \
+            --report-base "$report_base" --run-url "$RUN_URL" > comment.md
+
+          # A "skipped" notice is only worth posting over an earlier
+          # result; on its own it would just be noise.
+          mode=""
+          if [ "$STATUS" = skipped ]; then
+            mode=update-only
+          fi
+          trusted/.github/scripts/pr-comment.sh "$PR" comment.md $mode
+
+      # workflow_run runs don't show up in a PR's checks, so without this
+      # a failure anywhere above would be invisible from the PR. The PR
+      # number comes from the validated artifact if we got that far, or
+      # else from GitHub's own event data (which is empty for fork PRs —
+      # then the failure is only visible in the Actions tab).
+      - name: Report failure on the PR
+        if: failure()
+        env:
+          PR: ${{ steps.pr.outputs.number || github.event.workflow_run.pull_requests[0].number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$PR" ]; then
+            echo "::warning::Couldn't tell which PR this run was for, so nothing was posted."
+            exit 0
+          fi
+          python3 trusted/.github/scripts/bench-report.py --publish-failed \
+            --run-url "$RUN_URL" > failure.md
+          trusted/.github/scripts/pr-comment.sh "$PR" failure.md

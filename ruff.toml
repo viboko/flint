@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# ruff config — run via `just ruff` (lint + format check). See
+# docs/tooling.md.
+
+# The CI report scripts run on the system python3 of GitHub's Ubuntu
+# runners, which is at least this.
+target-version = "py311"
+# Matches rustfmt's default width.
+line-length = 100
+# Under target/ rather than ruff's default .ruff_cache/ at the repo root,
+# which the root .flint would (rightly) flag; `just clean` clears it too.
+cache-dir = "target/ruff-cache"
+
+[lint]
+# ruff's defaults (pyflakes, plus pycodestyle's error checks), plus:
+# pycodestyle warnings (W), import sorting (I), likely bugs (B, from
+# flake8-bugbear), and outdated idioms for target-version (UP).
+extend-select = ["W", "I", "B", "UP"]

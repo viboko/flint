@@ -1,0 +1,14 @@
+w*src/util.rs
+src/*/main.py
+src/**/*.py
+.gic/.git/x/abi/cdef
+in.py
+src/a/b/c/d.py
+src/.git/x/*src/util.rs
+src/*/main.py
+src/**/*.py
+.gcdef
+in.py
+src/a/b/c/dabi/cdef
+util.rs
+r{

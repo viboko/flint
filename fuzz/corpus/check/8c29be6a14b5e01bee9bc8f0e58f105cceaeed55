@@ -1,0 +1,11 @@
+*.py
+.git*
+{{ name }}Manager*.py
+weird\*file.txt
+---
+Home.py
+.hidden.py
+.gitignore
+.git/
+HomeManagerExtra.py
+weird name .txz

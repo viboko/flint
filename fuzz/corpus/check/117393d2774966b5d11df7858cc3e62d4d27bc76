@@ -1,0 +1,9 @@
+*.py
+.git*{{ name }}Manager*.py
+wei/
+---
+Home.pyJ.hidden.py
+.gitignore
+a~agerExtra.py
+weird*file.txt
+notes.txt

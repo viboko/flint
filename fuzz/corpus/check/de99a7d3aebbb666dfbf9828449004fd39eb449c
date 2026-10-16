@@ -1,0 +1,10 @@
+{{ name }}/
+ a/
+  b/
+    c.tx  t !{{ name }}Manager.py
+  !{{ name }}Pesnrteer.py
+---
+Appy
+src/a/b/c/d.py
+src/.git/x.py/
+

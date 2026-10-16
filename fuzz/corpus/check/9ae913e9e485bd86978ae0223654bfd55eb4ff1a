@@ -1,0 +1,14 @@
+a/
+  b/
+    c.*
+---
+src/util.rs
+src/linux/main/
+---
+.py
+sr
+a/b
+a/b/c.t*/*2py
+src/a/b/c/d.py
+src/.git/x.py
+sr

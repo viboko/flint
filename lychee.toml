@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# lychee config — run via `just links` (offline: links within the repo)
+# or `just links-online` (external links too). See docs/tooling.md.
+
+# Check `#heading` fragments, not just that the target file exists.
+# Line-range fragments into source files (`foo.rs#L10-L20`) can't be
+# checked: lychee only knows how to find fragments in Markdown and HTML.
+# tests/doc_links.rs checks them instead, under `cargo test`.
+include_fragments = "anchor-only"
+
+# Walk .github/ and .claude/ too. .gitignore still keeps target/ and
+# .venv/ out.
+hidden = true

@@ -1,0 +1,10 @@
+srcin.py
+src/**/*.py
+.git/*+
+---
+src/util.rs
+ns/main.py
+src/a/b/c/d.py
+src/.gi/ab/cdef
+util.rs
+

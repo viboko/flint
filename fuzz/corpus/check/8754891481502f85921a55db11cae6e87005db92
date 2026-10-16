@@ -1,0 +1,5 @@
+{{ namc }}/
+    <name, kind>
+ xt
+{{ k|kebab }}.{{ingSnake }}
+{{ t|title }}

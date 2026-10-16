@@ -1,0 +1,19 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ screamingKebab }}.sh
+---
+foo/FooManager.py
+fouo/BarManager.py
+home_!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!rc/utilinux/main.py
+ts/ab/cdef
+c/util.rs
+src/main.py
+src/**/*.py
+fg
+.py
+src/**/*.py
+fg
+MY-SCRIPT.sh

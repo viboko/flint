@@ -1,0 +1,20 @@
+{{ name }}/
+  !src/
+  util.rs
+  bin/
+    main.rs
+  lib/	mod.rs
+docs/
+  *.md
+cs/
+  *.md
+---
+src/util.}/
+  !src/
+  util.rs
+  bin/
+    main.rs
+  lib/	mod.rs
+docs/
+ name }}e }}Manager.py
+  src

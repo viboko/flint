@@ -1,0 +1,11 @@
+a/
+c/notes.txt
+.git/txt
+---
+.flint
+a
+a/b
+/./y
+a/../z
+/abs
+

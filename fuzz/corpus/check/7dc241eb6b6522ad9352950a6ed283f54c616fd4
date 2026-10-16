@@ -1,0 +1,6 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ id|snake }}.a/
+  b/
+    c.tx  t
+-.c/{{ s**/|s

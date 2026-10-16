@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Build output: cargo's, and the site `just playground-build` builds into
+# target/site/.
+/target

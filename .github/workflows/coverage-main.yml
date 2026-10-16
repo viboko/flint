@@ -1,0 +1,95 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Coverage (main)
+
+# Measures line coverage of both test suites on each push to main that
+# could change it, and publishes the HTML reports to coverage/ on the
+# GitHub Pages site. coverage.yml does the same for PRs, against their
+# base commit. See docs/coverage.md and docs/github-pages.md.
+on:
+  push:
+    branches: [main]
+    # The same files as coverage.yml's gate.
+    paths:
+      - "src/**"
+      - "e2e/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "justfile"
+      - ".github/workflows/coverage-main.yml"
+      - ".github/scripts/coverage-report.py"
+  workflow_dispatch:
+
+# Only the publish job gets write access.
+permissions:
+  contents: read
+
+# A newer push queues behind a run already underway, replacing any
+# older one still waiting.
+concurrency:
+  group: coverage-main
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see ci.yml.
+      - name: Install Rust
+        run: |
+          rustup toolchain install --no-self-update
+          rustup component add llvm-tools-preview
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just aqua:taiki-e/cargo-llvm-cov
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Measure coverage
+        run: just coverage-collect
+
+      - name: Build site
+        run: |
+          python3 .github/scripts/coverage-report.py --site site \
+            --report-dir target/coverage/report --title "flint test coverage: main @ ${GITHUB_SHA:0:7}"
+          python3 .github/scripts/coverage-report.py --summary target/coverage/report/summary.json \
+            | sed 's/^/    /' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-site
+          path: site
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: github.ref == 'refs/heads/main'
+    needs: coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the reports to gh-pages
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-site
+          path: site
+
+      - name: Publish to gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: .github/scripts/gh-pages.sh coverage site

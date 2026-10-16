@@ -1,0 +1,8 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notesrcpy
+.git/**
+r--s-
+c/util.rsc/a.rs
+t

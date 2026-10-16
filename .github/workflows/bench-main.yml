@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Benchmark (main)
+
+# Times the real binary on each push to main that changes implementation
+# code, and publishes the Criterion reports to benchmarks/ on the GitHub
+# Pages site. bench.yml does the same for PRs, against their base
+# commit. See docs/benchmarking.md and docs/github-pages.md.
+#
+# Can also be started by hand from the Actions tab (it only publishes
+# when started on main).
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "Cargo.lock", "benches/**"]
+  workflow_dispatch:
+
+# Only the publish job gets write access.
+permissions:
+  contents: read
+
+# A newer push queues behind a run already underway, replacing any
+# older one still waiting.
+concurrency:
+  group: bench-main
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see ci.yml.
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just
+
+      - name: Bench
+        run: just bench
+
+      - name: Build site
+        run: |
+          cp -R target/criterion site
+          # Criterion's own index is report/index.html; this makes the
+          # directory itself land there too.
+          echo '<meta http-equiv="refresh" content="0; url=report/">' > site/index.html
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bench-site
+          path: site
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: github.ref == 'refs/heads/main'
+    needs: bench
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the reports to gh-pages
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bench-site
+          path: site
+
+      - name: Publish to gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: .github/scripts/gh-pages.sh benchmarks site

@@ -1,0 +1,5 @@
+{{ name|camel }}/
+  {{ name|pascal }}Ma.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}{ r|screa{mingK2bab }}.sh
+{ n

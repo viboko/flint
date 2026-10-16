@@ -1,0 +1,13 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+{{ name }}/
+  !{{ name }}Manager.py
+  !{{ name }}Presenter.py
+---
+Apple/AppleManager.py
+Apple/ApplePresenterSpy
+Banana/B{{ name }}/
+  !{{ name }}MY
+src/an*{{ name}}/
+   !{{ ananaManagtel

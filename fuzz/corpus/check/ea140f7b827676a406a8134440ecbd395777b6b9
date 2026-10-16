@@ -1,0 +1,8 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-nsrc+utmain.py
+src/**/*.py
+.git/**
+---
+src/util.<<<

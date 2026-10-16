@@ -1,0 +1,13 @@
+src/
+  util.rs
+  bin/
+    maocs/
+  *.md
+---
+src/util.rs
+src/bin//
+    main.rs
+  lib/
+	mod.rs
+docs/
+  *.mdxt

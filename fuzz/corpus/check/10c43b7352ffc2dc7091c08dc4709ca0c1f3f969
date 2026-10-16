@@ -1,0 +1,18 @@
+src/
+   src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notel.rs
+src/msrc/
+   rs
+src/msrc/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}/notes
+src/*/ain.py
+/*p.y
+*/**
+---
+srgiinux/mainp.b/c/d.py
+1/-*/z--/-/'/z--/-.git/**---
+s/'

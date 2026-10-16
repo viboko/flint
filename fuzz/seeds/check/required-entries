@@ -1,0 +1,8 @@
+!README.md
+!*.md
+!src/util.rs
+\!important.txt
+---
+CHANGELOG.md
+!important.txt
+src/

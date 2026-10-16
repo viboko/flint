@@ -1,0 +1,13 @@
+src3tMai.np{{ name }}/
+  !{{ n }}MY
+src/an/*{{ name}}/
+   !{{ name }}Manager.py
+t
+---src/utilrc/util.rsai.np{{ name }}/
+ !{{ name }}MY
+src/ilrc/util.rsai.np{{ name }}/
+ !{{ name }}MY
+src/an*{{ name}}/
+   !{{ name }}Maan*{{ name}}/
+   !{{ name }}Manager.py
+t

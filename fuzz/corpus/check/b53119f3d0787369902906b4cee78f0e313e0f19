@@ -1,0 +1,4 @@
+src+utmain.py􌍜/**/*.py{{ name }}/
+  !{{ name }}Manager.py
+  !{{ name }}Presenter.py
+---

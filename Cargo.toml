@@ -1,0 +1,110 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "flint-cli"
+version = "0.1.0"
+edition = "2024"
+# Minimum supported Rust version — `just msrv` checks it. 1.85 is the
+# oldest release that supports edition 2024. See docs/tooling.md before
+# raising it.
+rust-version = "1.85"
+description = "Folder linter: validates that files and folders in a project match an allow-list, without looking inside any file."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/viboko/flint"
+keywords = ["cli", "linter", "filesystem", "project-structure"]
+categories = ["command-line-utilities", "development-tools"]
+# Only what building flint needs ships to crates.io: an allow-list, so a
+# new file in the repo stays out unless it's added here. tests/ and
+# benches/ stay out — they need e2e/ and docs/ — and Cargo drops their
+# targets from the published manifest. Cargo.toml, Cargo.lock and README.md
+# are added by Cargo itself. `just package-check`
+# checks the result against an expected list.
+include = ["/src/**/*.rs", "/LICENSE-MIT", "/LICENSE-APACHE"]
+
+# Each version below is the oldest flint is tested with — `just
+# test-minimal-versions` builds and tests against exactly these. The floors
+# for clap and regex come from Criterion (it needs clap 4.5 and regex
+# 1.5.1, and a dependency can't resolve to two versions at once); flint's
+# own code needs less.
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+regex = "1.5.1"
+# Composes accented letters (NFC), so a name matches however it's stored
+# — see `compose` in src/run.rs.
+unicode-normalization = "0.1.25"
+
+# docs.rs documents only public items by default, but most of flint's
+# logic is `pub(crate)` or private — match `just docs` so the hosted
+# docs aren't near-empty.
+[package.metadata.docs.rs]
+rustdoc-args = ["--document-private-items"]
+
+# criterion times benches/e2e.rs; gungraun counts instructions in
+# benches/logic.rs, and needs the matching gungraun-runner binary
+# installed (`just bench-logic` checks) — see docs/benchmarking.md.
+[dev-dependencies]
+criterion = "0.8"
+gungraun = "0.20"
+
+# Excludes the crate's default lib/bin unit tests from `cargo bench`'s
+# target set. Without this, an unscoped `cargo bench -- <args>` also
+# invokes the plain libtest harness for src/lib.rs's and src/main.rs's
+# `#[cfg(test)]` unit tests and forwards the same trailing args to it —
+# which fails, since libtest doesn't understand Criterion's or
+# Gungraun's flags, like `--save-baseline`. `cargo
+# test` is unaffected: `test = true` stays the default for both.
+[lib]
+name = "flint"
+path = "src/lib.rs"
+bench = false
+
+[[bin]]
+name = "flint"
+path = "src/main.rs"
+bench = false
+
+# Runs the Robot Framework suite under `cargo test`, for cargo-mutants'
+# benefit only — a no-op unless FLINT_ROBOT is set. See tests/robot.rs.
+[[test]]
+name = "robot"
+harness = false
+
+[[bench]]
+name = "logic"
+harness = false
+
+[[bench]]
+name = "e2e"
+harness = false
+
+# flint has no need for `unsafe`, so the compiler rejects it outright
+# (and `forbid`, unlike `deny`, can't be overridden by an `#[allow]`
+# further down). Lifting this should be a deliberate decision, made
+# together with adding Miri to CI to check the new code.
+[lints.rust]
+unsafe_code = "forbid"
+# Every item gets a doc comment, private ones included (clippy's lint
+# below) — `missing_docs` alone only covers the public API, which is
+# little of flint. Clippy skips code under `#[cfg(test)]`, so unit tests
+# and their helpers don't need one.
+missing_docs = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+missing_docs_in_private_items = "warn"
+# Selected `restriction` lints: code that can panic on bad input. A
+# panic in flint is a crash on someone's directory tree, so the library
+# returns an error or uses a non-panicking form (`.get()`,
+# `split_at_checked`) instead. An invariant the code relies on is stated
+# with `.expect("why it holds")` or a scoped `#[expect(..., reason = ...)]`.
+# `clippy.toml` exempts unit tests, where a panic is how a test fails.
+unwrap_used = "warn"
+indexing_slicing = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+# Off by default (clippy calls it a rough measure); its threshold is in
+# `clippy.toml`.
+cognitive_complexity = "warn"

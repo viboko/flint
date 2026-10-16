@@ -1,0 +1,17 @@
+a/
+  b/
+    c.tx  t
+---srcflint
+a
+a/b
+a/b/itx.py
+src/notes.txt
+.git~/objects/
+a//x
+a/./y
+a/..&z
+/aba/..&z
+/abs
+/ab/cdef
+util
+.rs

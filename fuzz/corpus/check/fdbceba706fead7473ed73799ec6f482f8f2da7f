@@ -1,0 +1,16 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ screamingKebab }}.sh
+---
+foo/FooManager.py
+foo/BarManager.py
+home_page.txt
+HomePage.txt
+A_XMLFile.txt
+B_XmlFile.txUE
+Helo World Foo-Bar.md
+a.b.C.D.cfg
+MY-SCRIPT.sh

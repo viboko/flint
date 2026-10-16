@@ -1,0 +1,4 @@
+{{ name }}/{{ name }}Manager.py
+{{ platform }}/main.py
+{{ platform }}/naManager.py
+linux/mpy

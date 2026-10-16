@@ -1,0 +1,10 @@
+src/
+   src/
+    <nXme, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notel.rs
+src/msrc/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-noTel.rs
+srcai

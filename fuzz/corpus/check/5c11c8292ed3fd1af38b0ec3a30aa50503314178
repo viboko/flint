@@ -1,0 +1,5 @@
+src/utirs
+src/*/main.py
+src/*p.y
+*/*.gc/d.py
+7ir.lut

@@ -1,0 +1,7 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ id|snake }}.xtt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}tx  src/util.r(s
+src/*/ma{nager.py
+{{ i{d

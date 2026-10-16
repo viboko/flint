@@ -1,0 +1,19 @@
+!rc/util.rs
+src/*ѕain.py
+src/**/*.py
+.git/**
+---nager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}.{{ q|screamingDot }}.cfg
+{{ r|screamingKebab }}.sh
+---
+foo/FooManager.py
+foo/BarManager.py
+home_page.
+sr
+sznt
+sro

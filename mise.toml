@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The exact version of every development tool the recipes in the
+# justfile run, other than Rust itself (that's rust-toolchain.toml) and
+# the Python packages in e2e/requirements.txt. CI installs these same
+# versions from this file, so `just ci` locally runs exactly the
+# linters GitHub Actions does. `mise install` installs them all; see
+# docs/tooling.md, which also covers bumping them.
+#
+# Prebuilt binaries wherever the tool publishes them, each checked
+# against the checksum mise.lock records for it, rather than from-source
+# `cargo install`s.
+
+[tools]
+just = "1.58.0"
+
+# Linters
+actionlint = "1.7.12"
+zizmor = "1.30.1"
+shellcheck = "0.11.0"
+# markdownlint-cli2 is an npm package, so it needs Node too.
+node = "24.22.0"
+markdownlint-cli2 = "0.23.2"
+lychee = "0.24.2"
+typos = "1.50.3"
+editorconfig-checker = "4.0.2"
+ruff = "0.16.10"
+biome = "2.5.14"
+
+# Cargo subcommands
+cargo-deny = "0.20.2"
+"github:bnjbvr/cargo-machete" = "0.9.2"
+"aqua:taiki-e/cargo-llvm-cov" = "0.9.1"
+# These two publish no Apple Silicon binaries, so they're built from
+# source (once per version).
+"cargo:cargo-mutants" = "27.1.0"
+"cargo:cargo-fuzz" = "0.13.2"
+# Only for release.yml's builds: the first embeds the dependency list
+# in the binary, the second writes each target's SBOM.
+"github:rust-secure-code/cargo-auditable" = "0.7.7"
+"github:CycloneDX/cyclonedx-rust-cargo" = { version = "0.5.9", version_prefix = "cargo-cyclonedx-" }
+
+# Only for `just pip-lock`; CI doesn't install it.
+uv = "0.12.13"
+
+[settings]
+# Record each tool's download URL and checksum in mise.lock, and refuse
+# to install anything that doesn't match it.
+lockfile = true

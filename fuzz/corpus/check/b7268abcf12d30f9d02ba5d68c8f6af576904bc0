@@ -1,0 +1,21 @@
+{{ name|camel }}/
+    {{ name|pascal }}Manager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ ame|camel }}/
+  {{ ab }}.{{ ame|camel }}/
+  {{ name|pascal }}Manager.py
+{{ iLl }}/
+  {{ ab }}.{{ ame|camel }}/{{ name|pascal }}Manager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ ame|camel }}/
+  {{ ab }}.{{ ame|camel }}/
+  {{ name|pascal }}Manager.py
+{{ iLl }}/
+  {{ ab }}.{{ ame|camel }}/
+ ello World Foo-Bar.md
+a.b.C.D.cfg
+MY-SCRIPT.sh

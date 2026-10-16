@@ -1,0 +1,9 @@
+a/
+  b/
+    c.tx  t
+---src/util.r{{ name }}/
+  !{{ name }}ManAger.py
+  !x/**/*.py
+.g
+src/util/y.
+rs

@@ -1,0 +1,9 @@
+srcin.py
+src/**/*.py
+.git/*+
+---
+src/util.rsa/n.p/**/*.py
+.git/*+
+---
+src/util.rslinux/main
+py.src/linux/neste

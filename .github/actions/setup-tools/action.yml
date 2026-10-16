@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Set up tools
+description: >-
+  Installs the given tools at the exact versions mise.toml pins (each
+  download checked against mise.lock's checksum) and puts them on PATH
+  for the steps after it. Every workflow installs its tools through this
+  action, so a version only ever changes in mise.toml.
+
+inputs:
+  tools:
+    description: >-
+      Space-separated tools to install, named as mise.toml names them
+      (e.g. `just cargo-deny github:bnjbvr/cargo-machete`).
+    required: true
+  cache:
+    description: >-
+      Whether to restore and save the installed tools from the Actions
+      cache. Pass "false" in a job that publishes something or pushes
+      with a write token: the cache is shared with PRs' runs.
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    # mise itself is pinned here — bump it deliberately. Its version
+    # doesn't change what any tool does, only how they're installed.
+    - uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+      with:
+        version: 2026.9.7
+        install_args: ${{ inputs.tools }}
+        cache: ${{ inputs.cache }}

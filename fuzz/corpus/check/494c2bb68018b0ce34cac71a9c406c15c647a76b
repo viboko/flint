@@ -1,0 +1,17 @@
+{{ name|camel }}/
+  {{ namnake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+%{{ k|kebab }}.{{ s|screamingSnake }}
+{{ t|title  }}/
+  !{{ name }}Manager.py
+  !{{ name }}srPee*.git/**
+---
+sc/d.py
+
+srcmain.py
+|kebab }}.{{ s|scsvc/a/b/c/d./*p.y
+el }}-
+---
+Apple/A
+MY-SCRIPT`sh

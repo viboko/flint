@@ -1,0 +1,9 @@
+a'*
+/(b/**/c
+-/(b/**/{{ name }}/
+  !{{ name }}Manager.py
+  !{{ name }}Presenter.py
+---
+Apple/A/AppleManagexxx.py
+Apple/ApplePresenter.py
+BannaBa/aanaMan/y.txt

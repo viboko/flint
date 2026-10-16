@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Basic whitespace conventions for every file in the repo, so editors
+# get them right without per-project setup. `just editorconfig` checks
+# the files follow them; see docs/tooling.md. Language-specific
+# formatting (rustfmt, ruff, Biome, Robocop) still has the last word.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Biome formats these with two-space indents (biome.jsonc), and YAML,
+# JSON and XML here follow the same.
+[*.{yml,yaml,json,jsonc,webmanifest,js,css,html,svg,xml}]
+indent_size = 2
+
+# Nested list content lines up with the text after its marker — two
+# spaces under `-`, three under `1.` — so no one width fits.
+[*.md]
+indent_size = unset
+
+# Fuzzer inputs: malformed on purpose (tabs, trailing spaces, CRLF, no
+# final newline, invalid UTF-8), so an editor mustn't "fix" them.
+[fuzz/{corpus,seeds}/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset

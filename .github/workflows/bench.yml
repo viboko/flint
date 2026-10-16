@@ -1,0 +1,146 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Benchmark
+
+# Times the real binary on every PR that changes implementation code
+# (base vs. PR), and hands the results to bench-publish.yml, which posts
+# them as a PR comment and publishes the HTML reports to GitHub Pages.
+# Informational only — not a required check, and it never fails because
+# of a slowdown: bench-logic.yml is the benchmark that can fail a PR.
+# See docs/benchmarking.md ("CI") for the full picture.
+#
+# This half runs the PR's own (possibly fork-authored) code, so it gets
+# a read-only token and only ever uploads an artifact. Everything that
+# needs write access lives in bench-publish.yml, which runs from `main`
+# and never executes PR code. Don't add write permissions here.
+on:
+  pull_request:
+    # Cheap first filter: don't even start a runner unless the code or
+    # its locked dependencies changed. The gate job below then skips PRs
+    # whose src/ changes are unit tests only.
+    paths: ["src/**", "Cargo.lock"]
+
+permissions:
+  contents: read
+
+# A new push to the same PR supersedes an in-flight run.
+concurrency:
+  group: bench-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Changes smaller than this (as a fraction) are never marked as a
+  # regression or improvement. Criterion's default of 0.01 flags too
+  # much on shared runners, where an unchanged benchmark can shift by
+  # several percent — see docs/benchmarking.md.
+  NOISE_THRESHOLD: "0.10"
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # `HEAD` is the PR merged into its base, so this compares exactly
+      # the PR's own changes.
+      - name: Check for implementation changes
+        id: gate
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: echo "run=$(.github/scripts/bench-gate.sh "$BASE_SHA" HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Lets bench-publish.yml replace an earlier results comment, if
+      # there is one, rather than leave it describing changes that are
+      # no longer in the PR.
+      - name: Prepare skipped notice
+        if: steps.gate.outputs.run == 'false'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir bench-result
+          echo "$PR_NUMBER" > bench-result/pr-number
+          echo skipped > bench-result/status
+          python3 .github/scripts/bench-report.py --skipped > bench-result/comment.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.gate.outputs.run == 'false'
+        with:
+          name: bench-result
+          path: bench-result
+          retention-days: 14
+
+  bench:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see ci.yml.
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just
+
+      # Plain `git checkout`, not a second actions/checkout: it leaves the
+      # untracked target/criterion (holding the "base" baseline) alone.
+      # Tolerated if it fails: the base ref may not have a working
+      # benchmark suite (e.g. this PR introduces or restructures it), and
+      # bench-report.py then shows "new" instead of a false comparison.
+      # The PR's own run below is deliberately not tolerated.
+      - name: Bench base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git checkout -q "$BASE_SHA"
+          just bench -- --save-baseline base || \
+            echo "::warning::Benchmarks failed on the base ref — expected if this PR introduces or restructures the benchmark suite. Skipping the comparison."
+
+      - name: Bench PR
+        run: |
+          git checkout -q "$GITHUB_SHA"
+          just bench -- --save-baseline pr
+
+      # `--save-baseline pr` compares "pr" only against a previous "pr",
+      # never against "base". This reloads both saved baselines (no
+      # re-measurement) and rewrites target/criterion's reports as a
+      # genuine base-vs-PR comparison.
+      - name: Compare PR against base
+        run: |
+          just bench -- --load-baseline pr --baseline base --noise-threshold "$NOISE_THRESHOLD" || \
+            echo "::warning::No base-ref data to compare against — the report shows the PR's own run only."
+
+      - name: Build results
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir bench-result
+          echo "$PR_NUMBER" > bench-result/pr-number
+          echo ran > bench-result/status
+          python3 .github/scripts/bench-report.py --noise-threshold "$NOISE_THRESHOLD" \
+            > bench-result/comment.md
+          cp -R target/criterion bench-result/site
+          # Criterion's own index is report/index.html; this makes the
+          # directory itself land there too.
+          echo '<meta http-equiv="refresh" content="0; url=report/">' > bench-result/site/index.html
+          # Links can't point at hosted pages from here, so the run
+          # summary links to this run (whose artifact holds the reports).
+          python3 .github/scripts/bench-report.py --fill bench-result/comment.md \
+            --run-url "$RUN_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bench-result
+          path: bench-result
+          retention-days: 14

@@ -1,0 +1,6 @@
+src/
+    <name, kind>
+      {{ name|snake }}-notel.rs
+src/main.py-q.md
+q-r.md
+<a>.txt

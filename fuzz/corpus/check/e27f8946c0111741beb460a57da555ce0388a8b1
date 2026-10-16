@@ -1,0 +1,36 @@
+a/
+  b/
+    c.tx  t
+---src/ut/a/b/c/d.py
+src/.git/x.py
+src/notes.tjects/
+a//x
+a/./y
+a/../z
+/abs
+/ab/cdef
+uted/mai
+.flint
+a
+a/b
+a/b/c.txpn2py
+-src/ut/a/b/c/d.pes.txt
+.git/objects/
+a//x
+a/./y
+a/../z
+/abs
+/ab/cdef
+uted/mai
+.flint
+a
+a/b
+a/b/c.txpn2py
+sects/
+a//x
+a/./y
+a/../z
+/abs
+/ab/cdef
+ id|snakeutil
+.rs

@@ -1,0 +1,12 @@
+!REAmd!important.txt
+src/
+
+!*.md
+
+src/**/*.py
+.git/**
+---
+src/util.rs
+src/linux/main.p.md
+!important.txt
+src/

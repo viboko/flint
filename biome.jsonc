@@ -1,0 +1,17 @@
+// SPDX-FileCopyrightText: The flint contributors
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
+// Biome config — run via `just biome`. Lints and format-checks the
+// playground's JavaScript, CSS and HTML (playground/web/), and every SVG
+// (the logo and favicon). See docs/tooling.md.
+{
+  // Respect .gitignore, so build output (playground/target/site/, which
+  // holds a copy of these files plus generated wasm-bindgen glue) is
+  // never checked.
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  }
+}

@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The fuzzing harness — a separate Cargo project, see docs/fuzzing.md.
+
+# Rust project
+!Cargo.toml
+!Cargo.lock
+!fuzz_targets/
+    {{ name|snake }}.rs
+target/**                       # build output; gitignored
+
+# Inputs
+seeds/                          # hand-written inputs, one per feature
+    check/
+        {{ name|kebab }}
+corpus/                         # inputs cargo-fuzz found
+    check/
+        *                       # SHA-1 hex names; no format fits them yet
+
+# cargo-fuzz output
+artifacts/**                    # crash/timeout reproducers; gitignored
+coverage/**                     # coverage reports; gitignored
+
+!.gitignore

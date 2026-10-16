@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Scorecard
+
+# OpenSSF Scorecard: scores the repository's security practices as a
+# whole — branch protection, token permissions, pinned dependencies,
+# fuzzing, static analysis, a security policy, and so on — and reports
+# anything it marks down in the Security tab. Complements zizmor, which
+# looks at the workflow files in depth but not at repo settings.
+#
+# With `publish_results`, the Scorecard API only accepts results from a
+# workflow that follows its rules: no workflow-level env, defaults or
+# write permissions, and only approved actions (no `run:` steps) in the
+# job below. See https://github.com/ossf/scorecard-action#workflow-restrictions
+# before adding anything here.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "29 4 * * 1"
+  # Rescore when branch protection changes, since it's one of the checks.
+  branch_protection_rule:
+
+permissions: {}
+
+jobs:
+  analysis:
+    # Scorecard only supports public repositories; skip until this one
+    # is. `!= true` rather than `== false` so that, once public, the job
+    # runs even for an event whose payload doesn't carry the field.
+    if: github.event.repository.private != true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload results to the Security tab
+      id-token: write # authenticate to the Scorecard API to publish results
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Publishes to the public Scorecard API, which is what the
+          # badge and https://scorecard.dev/viewer read from.
+          publish_results: true
+
+      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: results.sarif

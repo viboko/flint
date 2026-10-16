@@ -1,0 +1,147 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Coverage
+
+# Measures line coverage of both test suites on the PR and on its base
+# commit, and hands the comparison to coverage-publish.yml, which posts
+# it as a PR comment and publishes the PR's HTML reports to GitHub Pages. Informational only — not a required check, and it
+# never fails because coverage dropped. See docs/coverage.md.
+#
+# Like bench.yml, this half runs the PR's own (possibly fork-authored)
+# code, so it gets a read-only token and only ever uploads artifacts.
+# Everything that needs write access lives in coverage-publish.yml,
+# which runs from `main` and never executes PR code. Don't add write
+# permissions here.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to the same PR supersedes an in-flight run.
+concurrency:
+  group: coverage-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # `HEAD` is the PR merged into its base, so this compares exactly
+      # the PR's own changes. Docs-only PRs (and the like) can't change
+      # coverage, so they skip measuring it.
+      - name: Check for changes that affect coverage
+        id: gate
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA" HEAD -- src e2e Cargo.toml Cargo.lock justfile \
+              .github/workflows/coverage.yml .github/scripts/coverage-report.py; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Lets coverage-publish.yml replace an earlier results comment, if
+      # there is one, rather than leave it describing changes that are
+      # no longer in the PR.
+      - name: Prepare skipped notice
+        if: steps.gate.outputs.run == 'false'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir coverage-result
+          echo "$PR_NUMBER" > coverage-result/pr-number
+          echo skipped > coverage-result/status
+          python3 .github/scripts/coverage-report.py --skipped > coverage-result/comment.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.gate.outputs.run == 'false'
+        with:
+          name: coverage-result
+          path: coverage-result
+          retention-days: 14
+
+  coverage:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see ci.yml.
+      - name: Install Rust
+        run: |
+          rustup toolchain install --no-self-update
+          rustup component add llvm-tools-preview
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just aqua:taiki-e/cargo-llvm-cov
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      # The base commit is measured with this PR's own `coverage-collect`
+      # recipe (and summary script), run against a checkout of the base
+      # in a separate worktree, so both sides are measured the same way
+      # even when this PR changes how. Tolerated if it fails: the base's
+      # tests might not pass under this PR's recipe (e.g. this PR
+      # restructures the suites), and the comment then shows the PR's
+      # coverage on its own. The PR's own run below is deliberately not
+      # tolerated.
+      - name: Coverage of base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          base="$RUNNER_TEMP/base"
+          git worktree add -q --detach "$base" "$BASE_SHA"
+          if just --justfile justfile --working-directory "$base" coverage-collect; then
+            cp "$base/target/coverage/report/summary.json" "$RUNNER_TEMP/base-summary.json"
+          else
+            echo "::warning::Measuring coverage failed on the base commit, so the comment shows this PR's coverage without a comparison."
+          fi
+
+      - name: Coverage of PR
+        run: just coverage-collect
+
+      - name: Build results
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BLOB_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir coverage-result
+          echo "$PR_NUMBER" > coverage-result/pr-number
+          echo ran > coverage-result/status
+          python3 .github/scripts/coverage-report.py --compare \
+            --base "$RUNNER_TEMP/base-summary.json" --pr target/coverage/report/summary.json \
+            --report-dir target/coverage/report \
+            --base-ref "$BASE_SHA" --blob-url "$BLOB_URL" --run-url "$RUN_URL" \
+            > coverage-result/comment.md
+          # The HTML reports, laid out as the comment's links expect.
+          python3 .github/scripts/coverage-report.py --site coverage-result/site \
+            --report-dir target/coverage/report --title "flint test coverage: PR #$PR_NUMBER"
+          # Links can't point at hosted pages from here, so the run
+          # summary links to this run (whose artifact holds the reports).
+          python3 .github/scripts/coverage-report.py --fill coverage-result/comment.md \
+            --run-url "$RUN_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-result
+          path: coverage-result
+          retention-days: 14

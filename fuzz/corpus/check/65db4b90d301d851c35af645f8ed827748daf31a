@@ -1,0 +1,13 @@
+.txt
+{{ k|kebab }}.{{ingSnake }}
+{{ t|title }} {{ u|train }}.md
+{{ p|dot }}.{{aminoDot }}src/*/main.py
+src/**/*.py
+.git/**
+---
+src/util.rs
+srct
+a
+a/ Foo-?ar.md
+a.b.C.D.cfitg
+MY-SCRIPT.sh

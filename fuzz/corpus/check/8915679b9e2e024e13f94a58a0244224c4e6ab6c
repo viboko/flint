@@ -1,0 +1,13 @@
+a/
+src  b/
+    c.*
+---
+src/util.rsnux/mainnested/mai
+.flin
+a
+a/b
+a/b//util.rs
+src/*tes.txsrc/.git/x.py
+src/notes*.txt/*.py
+
+.

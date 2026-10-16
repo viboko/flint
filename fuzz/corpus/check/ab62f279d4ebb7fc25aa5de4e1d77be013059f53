@@ -1,0 +1,11 @@
+src/
+  util.r---
+src/util.rs
+src/bin/main.rs
+src  *.md
+---
+src/util.rs
+src/bin/main.rs
+src/lib/mod.rs
+docs/a.md
+oscd/b.txt

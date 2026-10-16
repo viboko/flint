@@ -1,0 +1,8 @@
+**/{{ name }}/
+  !{{ name }}Masentep
+y--.rc/**/*.py
+p
+y--.git/**
+---
+src/r.py
+  !{{ name }}Pres

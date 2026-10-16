@@ -1,0 +1,9 @@
+{{ ua }}S{{ b }}.tx{{ name }}/
+  !{{ tame }}ManAger.p/
+  !{{ tame }}ManAgsrc+utmain.py
+src/**/*.py
+.git/**
+---
+src+linuxsrc/util.<<<<<<<<<<<<<<<<<s
+src+linux/m-in.py
+srcer

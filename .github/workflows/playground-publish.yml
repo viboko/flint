@@ -1,0 +1,118 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Playground (publish)
+
+# The write-access half of the PR playground preview: hosts a PR's build
+# of the playground (from playground.yml) on GitHub Pages under
+# pr-<N>/playground/, and posts its link on the PR. See
+# docs/github-pages.md. The same split, for the same reasons, as
+# bench-publish.yml — see docs/benchmarking.md ("CI").
+#
+# This trigger always runs this file as it is on `main` — never a PR's
+# version of it — so a PR, including one from a fork, can't change what
+# runs here with a write token. Nothing here checks out or executes PR
+# code: it only reads the artifact playground.yml uploaded, and treats
+# its contents as untrusted data. Keep it that way. (Removing the
+# preview when the PR closes is pages-cleanup.yml's job.)
+#
+# zizmor flags the trigger as dangerous in general; the above is why
+# it's safe here, so that finding is suppressed on the next line.
+on: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows: [Playground]
+    types: [completed]
+
+permissions: {}
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  REPO: ${{ github.repository }}
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # download the artifact from playground.yml's run
+      contents: write # push the preview to gh-pages
+      pages: read # look up the Pages URL
+      pull-requests: write # post/update the comment
+    steps:
+      # The default branch's scripts, not the PR's — see the top of this
+      # file.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Download build
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: gh run download "$RUN_ID" --repo "$REPO" --name playground-result --dir playground-result
+
+      # The artifact names its own PR, so check that claim: the PR must
+      # exist and its head must be the commit playground.yml just built.
+      # This stops a fork from pointing the preview at someone else's PR,
+      # and also drops builds that a newer push has already superseded.
+      - name: Validate
+        id: pr
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(cat playground-result/pr-number)
+          if ! [[ "$pr" =~ ^[0-9]+$ ]]; then
+            echo "::error::Artifact has an invalid PR number."
+            exit 1
+          fi
+          pr_json=$(gh api "repos/$REPO/pulls/$pr")
+          if [ "$(jq -r .head.sha <<<"$pr_json")" != "$HEAD_SHA" ]; then
+            echo "::notice::PR #$pr has moved on since this run — leaving it to the newer run."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Only same-repo PRs (authored by someone with write access)
+          # get a hosted preview: a fork's playground is arbitrary HTML
+          # and JavaScript, which mustn't be published under this repo's
+          # Pages domain. Forks get no preview at all.
+          if [ "$(jq -r '.head.repo.full_name // ""' <<<"$pr_json")" != "$REPO" ]; then
+            echo "::notice::PR #$pr is from a fork, so its playground isn't hosted."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "number=$pr" >> "$GITHUB_OUTPUT"
+
+      - name: Publish preview to gh-pages
+        id: pages
+        if: steps.pr.outputs.stale != 'true'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
+          trusted/.github/scripts/gh-pages.sh "pr-$PR/playground" playground-result/site
+          # Left unset if Pages isn't enabled yet, and then there's no
+          # link to post. Test the exit status, not the output: on a 404,
+          # gh prints the error JSON to stdout.
+          if url=$(gh api "repos/$REPO/pages" --jq .html_url 2>/dev/null); then
+            echo "url=$url" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post or update comment
+        if: steps.pages.outputs.url != ''
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          url="${PAGES_URL%/}/pr-$PR/playground/"
+          cat > comment.md <<COMMENT
+          <!-- flint-playground-report -->
+          ## Playground preview
+
+          This PR's build of the browser playground (as of ${SHA:0:7}): $url
+
+          It's rebuilt on each push that changes flint's code or the playground, and removed when the PR closes.
+          COMMENT
+          trusted/.github/scripts/pr-comment.sh "$PR" comment.md

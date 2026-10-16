@@ -1,0 +1,13 @@
+src/util.rs
+src/*/main.py
+src/*p.y
+*/*.git/**
+---
+srcrc/'linux/main.py
+src/linux/nested/main.py
+src/a/b/c/d.py
+src/.git/x.pyrxt
+.gt/objects/
+a//x
+a/./y
+b/cdeft/objeut

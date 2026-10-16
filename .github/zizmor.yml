@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# zizmor's configuration (`just zizmor`; see docs/tooling.md).
+rules:
+  # Wants `uses: $/.github/actions/...` rather than `./.github/...` for
+  # the repo's own composite actions, which can't then pick up an action
+  # an earlier step cloned at runtime. Every job here uses them straight
+  # after its first checkout, before anything else lands in the
+  # workspace, so `./` loads the same action. Re-enable once actionlint
+  # understands `$/` — today it rejects it
+  # (https://github.com/rhysd/actionlint/issues/711).
+  self-repository:
+    disable: true

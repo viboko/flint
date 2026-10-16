@@ -1,0 +1,17 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notel.rs
+src/main.py
+srcpy
+.g?t/****
+---
+{{ namc }}/
+  !{{ nam0e }}Manager.py
+  !{{1me }}/
+me }}/
+  !{{ name }}My
+  !{{ nam0e }}Manager.py
+  !{{me }}/
+  !{{ nr.pysr
+Apc/up

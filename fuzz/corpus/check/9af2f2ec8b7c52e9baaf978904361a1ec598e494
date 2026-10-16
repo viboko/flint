@@ -1,0 +1,13 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notel.rs
+src/main.py
+srcpy
+.git/**
+r-c/mamn.py
+src/**/*.py
+.git/**
+---
+src/u*tizinux/main.ps.{{ kindmd
+<x>y.tx

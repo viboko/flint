@@ -1,0 +1,79 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    # The fuzz harness (fuzz/) and the playground (playground/) are
+    # separate workspaces, each with its own Cargo.lock.
+    directories: ["/", "/fuzz", "/playground"]
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "Etc/UTC"
+    # Waits a week after a version is published before proposing it, so a
+    # compromised release is more likely to have been caught and yanked
+    # before it reaches a PR here. Security updates ignore this and
+    # still arrive immediately.
+    cooldown:
+      default-days: 7
+    # Without this, Dependabot only considers dependencies declared
+    # directly in Cargo.toml — a transitive-only bump (e.g. a proc-macro
+    # crate two levels deep) never gets a PR here, even though `cargo
+    # update` would happily pick it up. Opting in means those land as
+    # small, easy-to-bisect PRs on their own schedule instead of quietly
+    # piling up until some later, unrelated change drags them along too.
+    allow:
+      - dependency-type: "all"
+    groups:
+      # Everything's patch/minor bumps (direct or transitive, per `allow`
+      # above), bundled into one PR so this mirrors a manual `cargo
+      # update` diff instead of one PR per crate. Major bumps are
+      # deliberately excluded (no update-types match here), so each one
+      # still gets its own dedicated single-dependency PR.
+      patch-and-minor:
+        patterns: ["*"]
+        update-types: ["patch", "minor"]
+
+  # Keeps the workflows' SHA-pinned actions current: Dependabot bumps
+  # both the SHA and the `# vX.Y.Z` comment beside it. "/" covers
+  # .github/workflows; the repo's own composite actions each need
+  # listing. (The tool versions in mise.toml and rust-toolchain.toml
+  # aren't something Dependabot can update — see docs/tooling.md.)
+  - package-ecosystem: "github-actions"
+    directories: ["/", "/.github/actions/setup-tools"]
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "Etc/UTC"
+    cooldown:
+      default-days: 7
+    groups:
+      # Same split as cargo above: minor/patch bumps together, majors
+      # one PR each.
+      patch-and-minor:
+        patterns: ["*"]
+        update-types: ["patch", "minor"]
+
+  # The e2e suite's Python packages. Dependabot reads the `uv pip
+  # compile` command from requirements.txt's header and reruns it, so
+  # a bump updates requirements.in, the pins of transitive dependencies
+  # and every hash together.
+  - package-ecosystem: "pip"
+    directory: "/e2e"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "Etc/UTC"
+    cooldown:
+      default-days: 7
+    # As for cargo: transitive-only bumps get PRs too.
+    allow:
+      - dependency-type: "all"
+    groups:
+      patch-and-minor:
+        patterns: ["*"]
+        update-types: ["patch", "minor"]

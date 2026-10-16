@@ -1,0 +1,17 @@
+src/util.rs
+src/*/main.py
+src/*-/*.py
+.git/**
+---
+*src/util.rs
+src/lted/maen.py
+src/a/b/c/d.py
+src/.gi/util.rs
+src/linux/main.py
+src
+src/l)inux/main.py
+src/linux/nested/main.py
+src/a/b/c/d.py
+src/.git/x.py
+src/notes.tt/obj.rs
+

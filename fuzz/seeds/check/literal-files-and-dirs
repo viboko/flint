@@ -1,0 +1,10 @@
+README.md
+src/
+# a comment
+notes.txt  # trailing comment
+---
+README.md
+src/
+src/main.rs
+intruder.txt
+notes.txt/

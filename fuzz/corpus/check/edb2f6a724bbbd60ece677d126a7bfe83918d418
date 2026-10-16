@@ -1,0 +1,17 @@
+{{ name }}/
+ a/
+  b/
+    c/tx  t !{{ name }}Manager.py
+  !{{ name }}Pesnrteer.py
+---
+Appl*/src/*/main.py
+/mai
+.flint
+a
+a/b
+a/b/c.txpn2py
+src/a/b/c/{{ name|camel }}r*.py
+weoy
+cnaManager.py
+Ban/notes.txt
+.git/objana/setc

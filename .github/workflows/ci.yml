@@ -1,0 +1,202 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The toolchain rust-toolchain.toml pins, with the components it
+      # lists. rustup directly, rather than an action: GitHub's runners
+      # already have it, and the usual action (dtolnay/rust-toolchain)
+      # publishes its per-toolchain branches by force-pushing them, so a
+      # SHA pinned to one soon stops belonging to any branch — which
+      # zizmor's impostor-commit audit rightly can't tell apart from a
+      # malicious fork commit. The other workflows install Rust the same
+      # way.
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+
+      # The fuzz harness and the playground are each their own workspace,
+      # built by `just clippy` (and the playground by `just test`).
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: |
+            . -> target
+            fuzz -> target
+            playground -> target
+
+      # Every linter below, at the version mise.toml pins — the same ones
+      # `just install-tools` installs locally, so each step can run the
+      # same recipe `just ci` does.
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: >-
+            just actionlint zizmor shellcheck node markdownlint-cli2
+            lychee typos editorconfig-checker ruff biome cargo-deny
+            github:bnjbvr/cargo-machete
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Format check
+        run: just fmt-check
+
+      - name: Clippy
+        run: just clippy
+
+      # actionlint picks up shellcheck to lint the workflows' inline
+      # `run:` scripts too.
+      - name: Workflow lint
+        run: just actionlint
+
+      # With a token, zizmor also runs its online audits (e.g. that each
+      # pinned action SHA really belongs to the repo it claims to).
+      - name: Workflow security lint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: just zizmor
+
+      - name: Shell script lint
+        run: just shellcheck
+
+      - name: Python lint
+        run: just ruff
+
+      - name: JavaScript/CSS/HTML lint
+        run: just biome
+
+      - name: Playground SEO
+        run: just seo
+
+      # Installs Robocop into the same .venv the e2e suite runs from.
+      - name: Robot Framework lint
+        run: just robocop
+
+      - name: Markdown lint
+        run: just markdownlint
+
+      # Offline — external links are checked weekly by links.yml
+      # instead, so a site being down can't fail a PR.
+      - name: Link check
+        run: just links
+
+      - name: Spell check
+        run: just typos
+
+      - name: EditorConfig check
+        run: just editorconfig
+
+      - name: REUSE check
+        run: just reuse
+
+      - name: Unit tests
+        run: just test
+
+      - name: Docs
+        run: just docs-check
+
+      - name: Usage docs
+        run: just usage-check
+
+      - name: Cargo deny
+        run: just deny
+
+      - name: Unused dependencies
+        run: just machete
+
+      - name: Self-lint
+        run: just flint
+
+  # The slower compatibility checks, split out to run in parallel with
+  # `ci`: each builds with its own toolchain or target directory, so
+  # they'd only queue behind the rest there, and they rarely fail — a
+  # check of their own makes it obvious when one does.
+  compat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see the `ci` job.
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just
+
+      # Installs the toolchain named by Cargo.toml's `rust-version` itself.
+      - name: MSRV build
+        run: just msrv
+
+      # Installs the nightly toolchain it resolves with itself.
+      - name: Minimal dependency versions
+        run: just test-minimal-versions
+
+      - name: Crate package contents
+        run: just package-check
+
+  # The end-to-end suite against the real binary, on each operating
+  # system flint ships for. Only the suite: the linters in `ci` give the
+  # same answer everywhere, so they stay Linux-only.
+  e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    # The justfile's recipes run under bash, which Windows runners also
+    # have (Git Bash).
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see the `ci` job.
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: E2E tests
+        run: just test-e2e
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: robot-report-${{ matrix.os }}
+          path: target/robot

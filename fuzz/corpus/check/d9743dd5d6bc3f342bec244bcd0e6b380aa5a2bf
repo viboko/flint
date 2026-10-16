@@ -1,0 +1,9 @@
+{{ name }}/
+  !{{ name }}Manages.py
+  !{{ jame }}Pesnrteer.py
+---
+Apple/AppleManager.py
+Apple/ApplePresenter.py
+Banana/BananaManager.py
+py
+Banana/BananaMa

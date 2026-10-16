@@ -1,0 +1,116 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Benchmark (instruction counts)
+
+# Counts the CPU instructions flint's parsing and checking logic
+# executes (benches/logic.rs, under Valgrind), on the PR's base and on
+# the PR, and fails if any benchmark's count grew by more than
+# INSTRUCTION_LIMIT. Unlike the wall-clock benchmark in bench.yml, the
+# counts barely vary between runs, so this one is a gate. See
+# docs/benchmarking.md ("CI").
+#
+# Like bench.yml, this runs the PR's own (possibly fork-authored) code,
+# so it gets a read-only token. Don't add write permissions here.
+#
+# No `paths` filter, unlike bench.yml: this is meant to be a required
+# status check, and a required check whose workflow never starts blocks
+# the PR forever. The gate job decides instead, and a job skipped by its
+# `if` counts as passing.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to the same PR supersedes an in-flight run.
+concurrency:
+  group: bench-logic-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # How far a benchmark's instruction count may grow before the check
+  # fails. An unchanged build varies by up to about 0.2% (from the
+  # standard library's randomly seeded hash maps) — see
+  # docs/benchmarking.md.
+  INSTRUCTION_LIMIT: "ir=1%"
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # `HEAD` is the PR merged into its base, so this compares exactly
+      # the PR's own changes. Beyond what bench.yml looks at: Cargo.toml
+      # (build profiles), and the benchmarks and this workflow
+      # themselves, so a change to either is tried out on its own PR.
+      - name: Check for implementation changes
+        id: gate
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          run=$(.github/scripts/bench-gate.sh "$BASE_SHA" HEAD \
+            src/ Cargo.toml Cargo.lock benches/logic.rs .github/workflows/bench-logic.yml)
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
+  instruction-counts:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see ci.yml.
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just
+
+      - name: Install Valgrind
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends valgrind
+
+      # The runner must match the gungraun crate the benchmarks build
+      # against, so its version comes from the PR's Cargo.lock. After
+      # rust-cache, so that the cache keeps the built binary.
+      - name: Install gungraun-runner
+        run: |
+          want="$(awk '/^name = "gungraun-runner"$/ { getline; gsub(/version = |"/, ""); print }' Cargo.lock)"
+          have="$(gungraun-runner --version 2>/dev/null | cut -d' ' -f2 || true)"
+          if [ "$have" != "$want" ]; then
+            cargo install gungraun-runner --version "$want" --locked
+          fi
+
+      # Tolerated if it fails: the base ref may not have these
+      # benchmarks, or may pin a different gungraun-runner (e.g. this PR
+      # introduces them, or updates Gungraun). The PR's run below then
+      # has nothing to compare against, and passes. The `rm` drops any
+      # counts that came back with the cache.
+      - name: Bench base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          rm -rf target/gungraun
+          git checkout -q "$BASE_SHA"
+          just bench-logic -- --save-baseline=base || \
+            echo "::warning::Instruction-count benchmarks failed on the base ref — expected if this PR introduces them or updates Gungraun. Nothing to compare against, so this check can't fail."
+
+      # Exits non-zero, failing the job, if any count is over the limit.
+      - name: Bench PR
+        env:
+          GUNGRAUN_CALLGRIND_LIMITS: ${{ env.INSTRUCTION_LIMIT }}
+        run: |
+          git checkout -q "$GITHUB_SHA"
+          just bench-logic -- --baseline=base

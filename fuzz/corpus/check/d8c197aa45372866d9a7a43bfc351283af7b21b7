@@ -1,0 +1,15 @@
+a/*e x/
+ +  p.txt
+--
+/**/*.py
+.git/**
+---
+src/util.rs
+src/linux/main.py
+src//b/c/drcps
+.y/.git/x.py
+src/notes.txt
+.git/objects/t/x.py
+src/notes.txt
+.git/objects/ab/cdef/b/*b/**/c
+---

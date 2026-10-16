@@ -1,0 +1,13 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        {{ nane|snake }}-notel+.rs
+src/main.py
+.git/**
+r--s-
+c/util.rs
+sr/
+    <name, kind>
+        /*.py
+.gs
+rc/1u>.txt

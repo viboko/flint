@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The browser playground — a separate Cargo project, see README.md.
+
+# Rust project
+!Cargo.toml
+!Cargo.lock
+build.rs                        # embeds examples/ into the crate
+!src/
+    {{ name|snake }}.rs
+target/**                       # build output and built site; gitignored
+
+# Examples, which double as tests
+!examples/
+    {{ name|kebab }}.md         # numbered, e.g. 01-allow-list.md
+
+# Static site
+!web/
+    !index.html
+    {{ name|kebab }}.css
+    {{ name|kebab }}.js
+    !CNAME                      # custom domain for GitHub Pages
+    !robots.txt
+    !sitemap.xml
+    !favicon/
+        {{ name|kebab }}.png
+        !favicon.ico
+        !favicon.svg
+        !site.webmanifest
+
+!README.md
+!.gitignore

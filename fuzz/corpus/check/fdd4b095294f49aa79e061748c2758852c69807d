@@ -1,0 +1,15 @@
+{{ name|camel }}/
+ *{{ name|pascal }}Manager.py
+z{{ id|snake }}.txt
+A_{{ x|pascal }}.txt
+B_{{ x|pascal }}.txt
+{{ k|kebab }}.{{ s|screamingSnake }}
+{{t |title }} {{ u|train }}.md
+{{ p|dot }}.{{ q|screamingDot }}.cfg
+{{ r|screamingKebab }}.sh
+---
+foo/FooManager.py
+fox|pascal }}.txt
+B_{k/BarManager.py
+home*page.txt}.txt
+A_{{ x|pascY-SCRIPT.sh

@@ -1,0 +1,13 @@
+{{ name }}/
+  !{{ name }}Manager.py
+  !{{ name }}PresenteR.py
+-ortantxt
+t.txt
+src/
+
+!*.md
+!rtant.txt
+---
+CHANGELOG.md
+!important.txt
+src/

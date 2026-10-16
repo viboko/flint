@@ -1,0 +1,117 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Mutation testing (PR)
+
+# Mutation-tests only the code each PR adds or changes under src/
+# (`just mutants-diff`, i.e. cargo-mutants --in-diff), and hands the
+# result to mutants-pr-publish.yml, which posts it as a PR comment.
+# Informational only — not a required check, and it never fails because
+# of a missed mutant. The weekly whole-codebase run is mutants.yml. See
+# docs/mutation-testing.md.
+#
+# Like coverage.yml, this half runs the PR's own (possibly fork-authored)
+# code, so it gets a read-only token and only ever uploads artifacts.
+# Everything that needs write access lives in mutants-pr-publish.yml,
+# which runs from `main` and never executes PR code. Don't add write
+# permissions here.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to the same PR supersedes an in-flight run.
+concurrency:
+  group: mutants-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  mutants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see ci.yml.
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just cargo:cargo-mutants
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      # `HEAD` is the PR merged into its base, so diffing from the base
+      # gives exactly the PR's own changes. Most PRs (docs, tests only,
+      # CI) produce no mutants at all, and skip the rest — listing them
+      # only parses the source, without building or testing anything.
+      - name: List mutants in this PR's changes
+        id: list
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          count=$(just mutants-diff "$BASE_SHA" --list | grep -c . || true)
+          echo "Mutants in this PR's changes: $count"
+          if [ "$count" -gt 0 ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Exit codes 2 (missed mutants) and 3 (timeouts) are results to
+      # report, not a broken run; anything else (e.g. 4: the tests fail
+      # even unmutated) is.
+      - name: Mutation tests
+        if: steps.list.outputs.run == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          status=0
+          just mutants-diff "$BASE_SHA" || status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 2 ] && [ "$status" -ne 3 ]; then
+            exit "$status"
+          fi
+
+      - name: Build results
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN: ${{ steps.list.outputs.run }}
+          BLOB_URL: ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir mutants-pr-result
+          echo "$PR_NUMBER" > mutants-pr-result/pr-number
+          if [ "$RUN" = true ]; then
+            echo ran > mutants-pr-result/status
+            python3 .github/scripts/mutants-report.py target/mutants.out --pr \
+              --blob-url "$BLOB_URL" --run-url "$RUN_URL" > mutants-pr-result/comment.md
+            cat mutants-pr-result/comment.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Lets mutants-pr-publish.yml replace an earlier results
+            # comment, if there is one, rather than leave it describing
+            # changes that are no longer in the PR.
+            echo skipped > mutants-pr-result/status
+            python3 .github/scripts/mutants-report.py --skipped > mutants-pr-result/comment.md
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutants-pr-result
+          path: mutants-pr-result
+          retention-days: 14
+
+      # Each mutant's diff and test log, for working out why it was missed.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.list.outputs.run == 'true'
+        with:
+          name: mutants-out
+          path: target/mutants.out
+          retention-days: 14

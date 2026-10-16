@@ -1,0 +1,38 @@
+{{ a }}a/
+  b/
+    c.tx  t
+---src/util.rs
+sr*c//main.py
+src/**/*.py
+.git/*c.txpn.py
+src/a/b/c/d.py
+src/.git/x.py
+src/notes.txt
+.git/objects/
+a{{ a }}-{{ b }}.txt
+*
+**///x
+a/./y
+-a/../z
+/abs
+/ab
+/cdef{{ b }}.txt
+*
+**/
+util
+.rs
+*c.txpn.py
+src/a/b/c/d.py
+src/.git/xects/
+a{{ a }}-xt
+.git/objects/
+a{{ a }}-{{ b }}.txt
+*
+**///x
+a/./y
+-a/../z
+/abs
+/ab
+/cdef{{ b }}.txt
+*
+

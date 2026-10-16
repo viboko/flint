@@ -1,0 +1,14 @@
+src/
+  util.rs
+  bin/
+    main.rs
+  lib/
+	mod.rs
+docs/
+  *.md
+---
+src/util.rs
+src/bin/main.rs
+src/lib/mod.rs
+docs/a.md
+docs/b.txt

@@ -1,0 +1,4 @@
+!README.`d
+!*{{ name|camel }} {{ naame|camel }}/
+ {{ name|camel }}/
+  {{ name|pascal }}Mannqsn

@@ -1,0 +1,29 @@
+src/
+    <name, kind>
+        !{{ name }}.{{ kind }}
+        *
+r-%ss
+src/lain.py
+src/**/*.py
+.git/**
+---
+src/u*tizinux/main.ps.{{ kind }}
+{ n.py
+srcpy
+.git/**
+r-Manager.py
+  !{{ name }}PE
+s/
+
+!*.md
+!-nt
+a
+a/-s-
+c/util.rs
+src/main.py
+sr/a.md
+src/README.mdq.t
+md
+q-q.md
+q-r.md
+<a>.txt

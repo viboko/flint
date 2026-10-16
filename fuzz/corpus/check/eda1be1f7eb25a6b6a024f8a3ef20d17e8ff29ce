@@ -1,0 +1,12 @@
+{{ name|camel }}/
+  {{ name|pascal }}Manager.py
+{{ id|snake }}.txt
+A_{{ x|pascal }}.t_{{ x|pascal }}.txt
+{{ screamingKebab }}.sh
+---
+foo/FooManager.py
+foo/BarManager.py
+hom.txt
+HomePage.txt
+A!README.md
+!Kebabger.e.pt

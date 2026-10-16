@@ -1,0 +1,3 @@
+{{ name|camel }}r*.py
+weoy
+c

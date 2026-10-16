@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# cargo-deny configuration: https://embarkstudios.github.io/cargo-deny/
+# Run via `just deny`, which checks the CLI and the playground. Only
+# settings that differ from cargo-deny's defaults are listed.
+
+[licenses]
+allow = ["MIT", "Apache-2.0", "Unicode-3.0"]
+# The playground is never published, so it has no license field of its
+# own to check.
+private = { ignore = true }
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# The playground depends on flint by path, with no version, and is never
+# published.
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

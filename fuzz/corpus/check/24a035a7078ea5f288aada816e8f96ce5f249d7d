@@ -1,0 +1,12 @@
+src/
+    <name, kind>
+      !  {{ namene|snake }}-notel.rs
+src/main.py
+srcpy
+.git/**
+r--s-
+c/util.rs
+sr/
+    < gommekind>
+        /*.py
+.git/*

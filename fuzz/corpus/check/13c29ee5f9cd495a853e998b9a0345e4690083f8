@@ -1,0 +1,8 @@
+{{ name }}/
+  !{{ name }}Manager.py
+  !{{ name }}Presennager.py
+  !{{ name }}Presenter.py
+---
+Asrc/util.rs
+
+src/*

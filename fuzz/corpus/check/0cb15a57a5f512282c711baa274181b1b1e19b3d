@@ -1,0 +1,9 @@
+{{ name }}/
+  !{{ name }}Manager.py
+  !{{ name }}Pra/*
+/b/**/c
+-py
+---
+ApplNNNNple/ApplePresenter.py
+Banana/BananaManager.py
+B

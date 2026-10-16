@@ -1,0 +1,8 @@
+{{ namt }}.{{ q|screamingDot }}.cfg
+{{ r|screamingKebab }}.sh
+---
+foo/y
+*/**
+-/ul.f
+a.b.C.D.cfg
+MY-SCRIPT.sh

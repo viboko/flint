@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# markdownlint-cli2 config — run via `just markdownlint`. See
+# docs/tooling.md, and https://github.com/DavidAnson/markdownlint for
+# what each rule checks.
+
+config:
+  default: true
+  # Prose is hand-wrapped at about 72 columns, but tables, links and
+  # code can't wrap, and a hard limit would only push those into
+  # awkward shapes.
+  MD013: false
+  # Tables use the compact `|---|` delimiter row and aren't aligned —
+  # padding every cell to line up would make each table edit a diff of
+  # the whole table.
+  MD060: false
+  # CHANGELOG.md repeats Keep a Changelog's `### Added` etc. under each
+  # version; only a repeat among siblings is a real mistake.
+  MD024:
+    siblings_only: true
+  # `<br>` is the only way to break a line inside a table cell.
+  MD033:
+    allowed_elements: [br]
+  # The PR template is a fragment of a PR description, which already has
+  # a title, so it starts at `##`.
+  MD041: false
+  # Pasted tool output (e.g. libFuzzer's) contains real tabs; keep it
+  # verbatim.
+  MD010:
+    code_blocks: false
+
+# Lint every tracked Markdown file; .gitignore keeps target/ and .venv/
+# out.
+globs:
+  - "**/*.md"
+gitignore: true
