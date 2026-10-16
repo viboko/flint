@@ -70,8 +70,9 @@ which version to install if it finds the wrong one.
 ## Publishing
 
 [`playground.yml`](../.github/workflows/playground.yml) builds the site
-on every PR that could change it, and on each push to `main` publishes
-it to the root of the [GitHub Pages site](../docs/github-pages.md),
+on every PR that could change it, and
+[`playground-main.yml`](../.github/workflows/playground-main.yml) builds
+it on each such push to `main` and publishes it to the root of the [GitHub Pages site](../docs/github-pages.md),
 which also hosts coverage and benchmark reports. A PR's build is
 published as a preview at `/pr-<N>/playground/` (same-repo PRs only),
 and the PR gets a comment linking to it; it's removed when the PR

@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Playground (main)
+
+# Builds the browser playground (with playground-build.yml) on each push
+# to main that could change it, and publishes it to the root of the
+# gh-pages branch. PRs' builds and previews are playground.yml's. See
+# docs/github-pages.md.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "playground/**"
+      - "justfile"
+      - "rust-toolchain.toml"
+      - "mise.toml"
+      - "mise.lock"
+      - ".github/actions/**"
+      - ".github/workflows/playground-build.yml"
+      - ".github/workflows/playground-main.yml"
+  workflow_dispatch:
+
+# Only the publish job gets write access.
+permissions:
+  contents: read
+
+# A publish already underway is left to finish; a newer one waits.
+concurrency:
+  group: playground-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/playground-build.yml
+    permissions:
+      contents: read
+
+  publish:
+    # Only main's build is published, including on a manual run.
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the site to gh-pages
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: playground
+          path: site
+
+      - name: Publish to gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: .github/scripts/gh-pages.sh playground site
