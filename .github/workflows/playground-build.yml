@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Playground build
+
+# Builds the browser playground (see playground/README.md) and uploads
+# it as an artifact. playground.yml calls this on every PR that could
+# change the playground, and playground-main.yml on each such push to
+# main, before publishing it. See docs/github-pages.md.
+on:
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The toolchain rust-toolchain.toml pins; rustup directly, not an
+      # action — see ci.yml.
+      - name: Install Rust
+        run: |
+          rustup toolchain install --no-self-update
+          rustup target add wasm32-unknown-unknown
+
+      # No rust-cache here, deliberately, for the same reason as
+      # release-build.yml: this build is published, and the cache is
+      # shared with other workflows' runs, including PRs'. The same goes
+      # for mise's own cache.
+      - uses: ./.github/actions/setup-tools
+        with:
+          tools: just
+          cache: "false"
+
+      # The wasm-bindgen CLI has to match the wasm-bindgen crate exactly,
+      # so its version comes from the lockfile, not from here.
+      - name: Read wasm-bindgen version
+        id: wasm-bindgen
+        run: |
+          version="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/version = |"/, ""); print }' playground/Cargo.lock)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Prebuilt and checksum-verified rather than a from-source `cargo
+      # install`. Not through .github/actions/setup-tools, since its
+      # version comes from playground/Cargo.lock rather than mise.toml.
+      - name: Install wasm-bindgen-cli
+        uses: taiki-e/install-action@ab6895351a88b908e96a4697860d4ffea5e57dbe # v2.87.27
+        with:
+          tool: wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
+
+      - name: Build
+        run: just playground-build
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playground
+          path: playground/target/site
+          if-no-files-found: error
+
+      - name: Prepare PR preview
+        if: github.event_name == 'pull_request'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir playground-result
+          echo "$PR_NUMBER" > playground-result/pr-number
+          cp -R playground/target/site playground-result/site
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: github.event_name == 'pull_request'
+        with:
+          name: playground-result
+          path: playground-result
+          retention-days: 14

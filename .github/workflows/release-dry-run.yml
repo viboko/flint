@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: The flint contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+name: Release dry run
+
+# Every PR runs the release builds (release-build.yml) — everything up
+# to publishing, for every target — so a change that would break the
+# next release fails here rather than on its tag. Publishing itself is
+# release.yml's, which only runs on a version tag.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  binaries:
+    uses: ./.github/workflows/release-build.yml
+    permissions:
+      contents: read

@@ -136,27 +136,35 @@ each release before proposing it (security updates aren't delayed).
 
 ### Release dry run
 
-[`release.yml`](../.github/workflows/release.yml) builds the release
-binaries when a version tag is pushed (see
-[`docs/agent/release.md`](agent/release.md)), and does a dry run of
-the same thing on every PR: it builds and packages each target, checks
+The release builds live in
+[`release-build.yml`](../.github/workflows/release-build.yml), a
+reusable workflow with two callers.
+[`release.yml`](../.github/workflows/release.yml) runs it when a version
+tag is pushed (see [`docs/agent/release.md`](agent/release.md)) and then
+publishes, and
+[`release-dry-run.yml`](../.github/workflows/release-dry-run.yml) runs
+it on every PR as a dry run: it builds and packages each target, checks
 the binary carries its dependency list for `cargo audit bin`, and
 writes its SBOM, stopping short of the attestation and the GitHub
-Release. So the first real run on a tag isn't the first time any of it
-has run. Every PR builds all five targets: Linux on x86_64 and arm64,
-macOS on Apple silicon and Intel, and Windows on x86_64. Its
-`reproducible` job also builds the Linux binary twice, from two
-directories, and fails unless the results are identical, and a tag
+Release, which only exist in `release.yml`. So the first real run on a
+tag isn't the first time any of it has run, and a PR's checks list only
+jobs that can run on it. Every PR builds all five targets: Linux on
+x86_64 and arm64, macOS on Apple silicon and Intel, and Windows on
+x86_64. Its `reproducible` job also builds the Linux binary twice, from
+two directories, and fails unless the results are identical, and a tag
 only publishes once that passes.
 
 ### Playground publishing
 
 [`playground.yml`](../.github/workflows/playground.yml) builds the
 [browser playground](../playground/README.md) on every PR that touches
-flint's code or the playground, and on each push to `main` publishes it
-to the root of the [GitHub Pages site](github-pages.md), which also
-hosts the coverage and benchmark reports and each PR's playground
-preview.
+flint's code or the playground, and
+[`playground-main.yml`](../.github/workflows/playground-main.yml) builds
+it on each such push to `main` and publishes it to the root of the
+[GitHub Pages site](github-pages.md), which also hosts the coverage and
+benchmark reports and each PR's playground preview. Both build with
+[`playground-build.yml`](../.github/workflows/playground-build.yml), a
+reusable workflow.
 
 ## Testing
 

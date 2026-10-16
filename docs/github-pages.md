@@ -7,7 +7,7 @@ for `main` and for each open PR:
 
 | Path | What's there | Published by |
 |---|---|---|
-| `/` | `main`'s playground | [`playground.yml`](../.github/workflows/playground.yml), on each push to `main` that could change it |
+| `/` | `main`'s playground | [`playground-main.yml`](../.github/workflows/playground-main.yml), on each push to `main` that could change it |
 | `/coverage/` | `main`'s coverage reports | [`coverage-main.yml`](../.github/workflows/coverage-main.yml), on each push to `main` that could change coverage |
 | `/benchmarks/` | `main`'s benchmark reports | [`bench-main.yml`](../.github/workflows/bench-main.yml), on each push to `main` that changes implementation code |
 | `/pr-<N>/playground/` | PR #N's playground, to try before merging | [`playground-publish.yml`](../.github/workflows/playground-publish.yml), which also comments the link on the PR |

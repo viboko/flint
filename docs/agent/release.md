@@ -26,7 +26,9 @@ Rust version" in [`docs/tooling.md`](../tooling.md).
    which builds release binaries for each supported target and publishes
    a GitHub Release with them attached — each with a checksum and an
    SBOM, plus a signed build provenance attestation — with no manual
-   steps of its own. Every PR already runs the same build as a dry run (see
+   steps of its own. Its builds are
+   [`release-build.yml`](../../.github/workflows/release-build.yml), which
+   every PR already runs as a dry run (see
    "Release dry run" in [`docs/tooling.md`](../tooling.md)), so a broken
    release build shows up there rather than on the tag.
 7. **Publish to crates.io** once the GitHub Release exists: `cargo

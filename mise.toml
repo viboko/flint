@@ -36,7 +36,7 @@ cargo-deny = "0.20.2"
 # source (once per version).
 "cargo:cargo-mutants" = "27.1.0"
 "cargo:cargo-fuzz" = "0.13.2"
-# Only for release.yml's builds: the first embeds the dependency list
+# Only for release-build.yml's builds: the first embeds the dependency list
 # in the binary, the second writes each target's SBOM.
 "github:rust-secure-code/cargo-auditable" = "0.7.7"
 "github:CycloneDX/cyclonedx-rust-cargo" = { version = "0.5.9", version_prefix = "cargo-cyclonedx-" }
