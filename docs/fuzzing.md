@@ -122,6 +122,9 @@ jobs:
 - **`replay`** — on every PR and push to `main` that touches the code,
   the fuzz harness, or the workflow: `just fuzz-replay`. Deterministic,
   so a PR only fails it if it makes one of the committed inputs crash.
+  It's a required status check, so the workflow starts on every PR and
+  a `gate` job skips `replay` (which counts as passing) when the PR
+  touches none of those.
 - **`extend`** — weekly, or on demand from the Actions tab (with a
   custom duration): fuzzes `main` for 30 minutes via `just fuzz 30`.
   - If that finds a crash, the job fails (GitHub emails a failure

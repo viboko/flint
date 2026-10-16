@@ -35,9 +35,9 @@ Rust version" in [`docs/tooling.md`](../tooling.md).
    into the crate.
 8. **Bump the Homebrew formula** in
    [`viboko/homebrew-tap`](https://github.com/viboko/homebrew-tap)'s
-   `Formula/flint-cli.rb`: its `version`, and for each of its four
-   targets (macOS arm64 and x86_64, Linux arm64 and x86_64) the archive's
-   `url` and the `sha256` from the release's `.sha256` file beside it.
+   `Formula/flint-cli.rb`: for each of its four targets (macOS arm64 and
+   x86_64, Linux arm64 and x86_64), the version in the archive's `url`,
+   and the `sha256` from the release's `.sha256` file beside it.
    Then `brew install --build-from-source viboko/tap/flint-cli`, `brew
    test` and `brew audit --strict --online` on it, as a PR to the tap.
 9. **Update the version in [`README.md`](../../README.md)'s**

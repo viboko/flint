@@ -13,18 +13,12 @@ name: Fuzz
 #   the corpus, then opens (or updates) a PR with the new inputs, as the
 #   bot app so that CI runs on it. A crash fails the job instead, with the
 #   crashing input uploaded as an artifact; nothing is pushed.
+# No `paths` filter on pull_request, unlike push: `replay` is a required
+# status check, and a required check whose workflow never starts blocks
+# the PR forever. The `gate` job applies the same paths instead, and a
+# job skipped by its `if` counts as passing.
 on:
   pull_request:
-    paths:
-      - "src/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "fuzz/**"
-      - "justfile"
-      - "mise.toml"
-      - "mise.lock"
-      - ".github/actions/**"
-      - ".github/workflows/fuzz.yml"
   push:
     branches: [main]
     paths:
@@ -52,8 +46,37 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  replay:
+  # Whether `replay` has anything to check: on a push, always (its
+  # trigger already filters by path); on a PR, only if it changes one of
+  # the paths the push trigger lists.
+  gate:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      # Depth 2: a PR checks out its merge commit, whose first parent is
+      # the base branch, so `HEAD^1..HEAD` is exactly the PR's changes.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+
+      - name: Check for fuzzed changes
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          fuzzed='^(src/|fuzz/|\.github/actions/|Cargo\.(toml|lock)$|justfile$|mise\.(toml|lock)$|\.github/workflows/fuzz\.yml$)'
+          if [ "$EVENT" = push ] || git diff --name-only HEAD^1 HEAD | grep -qE "$fuzzed"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  replay:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
