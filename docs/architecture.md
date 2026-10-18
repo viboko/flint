@@ -16,7 +16,7 @@ for what flint actually does from a user's point of view.
 
 | Module | Responsibility |
 |---|---|
-| [`main.rs`](../src/main.rs) | CLI entry point (via `clap`). The only I/O: implements `run.rs`'s `DirectoryTree` trait over the real disk (listing directories, reading `.flint` files), calls `run::run`, prints the lines `output::render` makes of the report to stdout/stderr, sets the exit code. A name on disk that isn't valid Unicode fails the listing, rather than being changed to fit in a string. |
+| [`main.rs`](../src/main.rs) | CLI entry point (via `clap`). The only I/O: implements `run.rs`'s `DirectoryTree` trait over the real disk (listing directories, reading `.flint` files), calls `run::run`, prints the lines `output::render` makes of the report to stdout/stderr, sets the exit code, and adds a hint on macOS when a folder couldn't be listed because the system keeps it private. A name on disk that isn't valid Unicode fails the listing, rather than being changed to fit in a string. |
 | [`lib.rs`](../src/lib.rs) | Crate root — just re-exports the modules below. |
 | [`flint_file.rs`](../src/flint_file.rs) | Parses raw `.flint` text into a list of [`Entry`](../src/flint_file.rs#L16-L32) values (a plain literal name, or a compiled `{{ variable }}`/wildcard `Template`). Owns `ParseError`/`ParseErrorKind`, lifting `template.rs`'s `TemplateError` into a `ParseErrorKind` with line context. |
 | [`template.rs`](../src/template.rs) | Compiles a tokenized `.flint` line into a [`Template`](../src/template.rs#L330-L375) — one regex per `/`-separated path component — and matches it against real paths, extracting `{{ variable }}` bindings. Reports compile failures as its own `TemplateError` rather than depending on `flint_file.rs`'s error types. |
@@ -99,9 +99,10 @@ files to merging violations happens in `run.rs`, roughly:
 
 ```mermaid
 flowchart LR
-    A["main: parse PATH from the command line"] --> B["run::discover_scopes:<br/>find every directory containing a .flint file<br/>(skips symlinked directories)"]
-    B -->|no scopes found| C["main: print output::render's lines<br/>(No flint file found)<br/>exit 0"]
-    B -->|one or more scopes| D["parse_scope:<br/>read + flint_file::parse each scope's .flint"]
+    A["main: parse PATH from the command line"] --> R{"run::run:<br/>a .flint file at the root?"}
+    R -->|no| C["main: print output::render's lines<br/>(No flint file found)<br/>exit 1"]
+    R -->|yes| B["run::discover_scopes:<br/>find every directory containing a .flint file<br/>(skips symlinked directories, and notes any it can't list)"]
+    B --> D["parse_scope:<br/>read + flint_file::parse each scope's .flint"]
     D --> E["for each scope: check_scope"]
     E --> F["scope::ancestor_scopes +<br/>checker::nested_scopes_relative_to"]
     F --> G["scope::effective_origins:<br/>this scope's own entries, plus any<br/>reaching ancestor's entries, rebased"]

@@ -33,7 +33,14 @@ Nonexistent Path Fails With A Clear Error
     ${missing}=    Join Path    ${dir}    does-not-exist
     ${result}=    Run Flint Against Path    ${missing}
     Should Be Equal As Integers    ${result.rc}    1
-    Should Contain    ${result.stderr}    Failed to scan
+    Should Contain    ${result.stderr}    Can't check ${missing}
+
+A Path To A File Fails With A Clear Error
+    ${dir}=    Create Empty Test Directory
+    Create File    ${dir}/readme.txt    hello
+    ${result}=    Run Flint Against Path    ${dir}/readme.txt
+    Should Be Equal As Integers    ${result.rc}    1
+    Should Contain    ${result.stderr}    it isn't a folder
 
 No Argument Defaults To The Current Directory
     ${dir}=    Create Empty Test Directory

@@ -12,12 +12,13 @@ Test Teardown    Cleanup Test Directories
 
 
 *** Test Cases ***
-No Flint File Reports Friendly Message And Succeeds
+No Flint File Is An Error
     ${dir}=    Create Empty Test Directory
     Create File    ${dir}/readme.txt    hello
     ${result}=    Run Flint In Directory    ${dir}
-    Should Be Equal As Integers    ${result.rc}    0
-    Should Contain    ${result.stdout}    No flint file found
+    Should Be Equal As Integers    ${result.rc}    1
+    Should Be Empty    ${result.stdout}
+    Should Contain    ${result.stderr}    No flint file found
 
 Directory Matching Flint File Passes
     ${dir}=    Create Empty Test Directory

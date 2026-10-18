@@ -141,13 +141,24 @@ Cascading Is A Union: A File Neither Side Permits Is Still Unexpected
     Should Be Equal As Integers    ${result.rc}    1
     Should Contain    ${result.stdout}    src/stray.rs
 
-No Flint File Anywhere In The Tree Still Reports The Friendly Message
+No Flint File Anywhere In The Tree Is An Error
     ${dir}=    Create Empty Test Directory
     Create Directory    ${dir}/src/nested
     Create File    ${dir}/src/nested/file.txt    hello
     ${result}=    Run Flint In Directory    ${dir}
-    Should Be Equal As Integers    ${result.rc}    0
-    Should Contain    ${result.stdout}    No flint file found
+    Should Be Equal As Integers    ${result.rc}    1
+    Should Contain    ${result.stderr}    No flint file found
+
+Nested Flint Files Need One At The Root
+    [Documentation]    Without a flint file where it starts, flint looks no further, so
+    ...    one in a folder below isn't checked.
+    ${dir}=    Create Empty Test Directory
+    Write Nested Flint File    ${dir}    src    util.rs\n
+    Create File    ${dir}/src/stray.rs    not permitted
+    ${result}=    Run Flint In Directory    ${dir}
+    Should Be Equal As Integers    ${result.rc}    1
+    Should Be Empty    ${result.stdout}
+    Should Contain    ${result.stderr}    No flint file found
 
 A Folder's Value Carries Into Its Own Flint File's Check
     [Documentation]    The root's `{{ name }}/{{ name }}.swift`, imported into `Home/`'s

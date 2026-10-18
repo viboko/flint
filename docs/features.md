@@ -8,9 +8,12 @@
   `.flint` files.
 - Each `.flint` file found is checked against the actual contents of its
   own directory.
-- If no `.flint` file exists anywhere in the tree, flint prints
-  `No flint file found` and exits successfully — linting is opt-in per
-  directory.
+- The directory being checked needs a `.flint` file of its own: without
+  one, flint prints `No flint file found` and exits with a non-zero
+  status, without searching any further.
+- A folder flint can't list is skipped, with a warning, while searching
+  for `.flint` files — but fails the check of any `.flint` file whose
+  rules look inside it.
 - Each `.flint` file is read as a plain-text **allow-list**: one name per
   line.
 - Anything present on disk that isn't in the allow-list is reported, and
