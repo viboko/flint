@@ -54,8 +54,8 @@ pub trait DirectoryTree {
 }
 
 /// Everything one run found, one [`ScopeReport`] per `.flint` file, sorted
-/// by scope path (so the root's own comes first). Empty if the tree has no
-/// `.flint` file at all.
+/// by scope path (so the root's own comes first). Empty if the root has no
+/// `.flint` file of its own, in which case nothing else is looked for.
 #[derive(Debug)]
 pub struct Report<E> {
     /// One entry per directory containing a `.flint` file.
@@ -63,14 +63,27 @@ pub struct Report<E> {
 }
 
 impl<E> Report<E> {
-    /// Whether every `.flint` file was read and parsed, and every
-    /// directory matched its rules — what decides flint's exit code.
+    /// Whether the root has a `.flint` file, every `.flint` file was read
+    /// and parsed, and every directory matched its rules — what decides
+    /// flint's exit code.
     #[must_use]
     pub fn passed(&self) -> bool {
-        self.scopes
-            .iter()
-            .all(|scope| matches!(&scope.status, ScopeStatus::Checked(v) if v.is_empty()))
+        !self.scopes.is_empty()
+            && self
+                .scopes
+                .iter()
+                .all(|scope| matches!(&scope.status, ScopeStatus::Checked(v) if v.is_empty()))
     }
+}
+
+/// A directory that couldn't be listed, and why.
+#[derive(Debug)]
+pub struct Unlisted<E> {
+    /// The directory, `""` for the root or a `/`-joined path relative to
+    /// it.
+    pub dir: String,
+    /// What went wrong listing it.
+    pub error: E,
 }
 
 /// The result for one scope: a directory containing its own `.flint` file.
@@ -83,6 +96,10 @@ pub struct ScopeReport<E> {
     pub status: ScopeStatus<E>,
 }
 
+/// What a step that lists directories gives: `T`, or the first directory
+/// it couldn't list.
+pub type Listed<T, E> = Result<T, Unlisted<E>>;
+
 /// What happened checking one scope.
 #[derive(Debug)]
 pub enum ScopeStatus<E> {
@@ -93,8 +110,11 @@ pub enum ScopeStatus<E> {
     ParseError(ParseError),
     /// The scope's `.flint` file couldn't be read.
     ReadError(E),
-    /// One of the directories the scope governs couldn't be listed.
-    ListError(E),
+    /// One of the directories the scope governs couldn't be listed, so
+    /// the scope couldn't be checked. [`run`] stops before checking
+    /// anything if a directory can't be listed, so this only happens if
+    /// one became unlistable since.
+    ListError(Unlisted<E>),
 }
 
 /// Runs flint over `tree`: finds every scope (`discover_scopes`),
@@ -102,11 +122,22 @@ pub enum ScopeStatus<E> {
 /// directory against its own rules plus any reaching ancestor's (see
 /// [`scope::effective_origins`]).
 ///
+/// Nothing is looked for unless the root has a `.flint` file of its own:
+/// one there is what says the tree is meant to be checked, and saves
+/// walking a whole tree that isn't (a home directory, say) to find out.
+///
+/// A failure inside one scope is reported as that scope's
+/// [`ScopeStatus`], and the other scopes are still checked.
+///
 /// # Errors
-/// Returns `Err` only if finding the scopes fails. A failure inside one
-/// scope is reported as that scope's [`ScopeStatus`] instead, and the
-/// other scopes are still checked.
-pub fn run<T: DirectoryTree>(tree: &T) -> Result<Report<T::Error>, T::Error> {
+/// Returns `Err`, naming the directory, as soon as looking for `.flint`
+/// files meets one that can't be listed. That search goes everywhere, so
+/// it finds any such directory before checking starts — and a tree flint
+/// can't see all of can't pass, so there's no point checking the rest.
+pub fn run<T: DirectoryTree>(tree: &T) -> Listed<Report<T::Error>, T::Error> {
+    if !tree.has_flint_file("") {
+        return Ok(Report { scopes: Vec::new() });
+    }
     let tree = &Composed::new(tree);
     let scopes = discover_scopes(tree)?;
     let scope_refs: Vec<&str> = scopes.iter().map(String::as_str).collect();
@@ -135,7 +166,7 @@ pub fn run<T: DirectoryTree>(tree: &T) -> Result<Report<T::Error>, T::Error> {
             result.as_ref().ok().map(|own_entries| {
                 match check_scope(tree, scope, own_entries, &scope_refs, &entries_by_scope) {
                     Ok(violations) => ScopeStatus::Checked(violations),
-                    Err(err) => ScopeStatus::ListError(err),
+                    Err(unlisted) => ScopeStatus::ListError(unlisted),
                 }
             })
         })
@@ -350,7 +381,7 @@ fn check_scope<T: DirectoryTree>(
     own_entries: &[Entry],
     all_scopes: &[&str],
     parsed: &HashMap<&str, &[Entry]>,
-) -> Result<Vec<Violation>, T::Error> {
+) -> Listed<Vec<Violation>, T::Error> {
     let scope_set: HashSet<&str> = all_scopes.iter().copied().collect();
     let descendant_scopes = checker::nested_scopes_relative_to(&scope_set, scope);
 
@@ -435,7 +466,7 @@ fn check_groups_below<T: DirectoryTree>(
     descendant_scopes: &HashSet<String>,
     all_scopes: &[&str],
     parsed: &HashMap<&str, &[Entry]>,
-) -> Result<(Vec<Violation>, Vec<Violation>), T::Error> {
+) -> Listed<(Vec<Violation>, Vec<Violation>), T::Error> {
     let everything: Vec<ActualEntry> =
         read_directory_entries(tree, scope, governance_entries, &HashSet::new())?
             .into_iter()
@@ -534,8 +565,8 @@ fn join(dir: &str, name: &str) -> String {
 /// other: what's in them is as much a part of the project's layout.
 ///
 /// # Errors
-/// Returns `Err` if any directory visited can't be listed.
-fn discover_scopes<T: DirectoryTree>(tree: &T) -> Result<Vec<String>, T::Error> {
+/// Returns `Err` for the first directory that can't be listed.
+fn discover_scopes<T: DirectoryTree>(tree: &T) -> Listed<Vec<String>, T::Error> {
     let mut scopes = Vec::new();
     discover_scopes_at(tree, "", &mut scopes)?;
     scopes.sort();
@@ -547,11 +578,15 @@ fn discover_scopes_at<T: DirectoryTree>(
     tree: &T,
     dir: &str,
     scopes: &mut Vec<String>,
-) -> Result<(), T::Error> {
+) -> Listed<(), T::Error> {
     if tree.has_flint_file(dir) {
         scopes.push(dir.to_string());
     }
-    for (name, kind) in tree.list(dir)? {
+    let listing = tree.list(dir).map_err(|error| Unlisted {
+        dir: dir.to_string(),
+        error,
+    })?;
+    for (name, kind) in listing {
         if kind == EntryKind::Directory {
             discover_scopes_at(tree, &join(dir, &name), scopes)?;
         }
@@ -572,7 +607,7 @@ fn read_directory_entries<T: DirectoryTree>(
     scope: &str,
     entries: &[Entry],
     nested_scopes: &HashSet<String>,
-) -> Result<Vec<ActualEntry>, T::Error> {
+) -> Listed<Vec<ActualEntry>, T::Error> {
     let mut actual = Vec::new();
     collect_entries(tree, scope, "", entries, nested_scopes, &mut actual)?;
     Ok(actual)
@@ -590,8 +625,10 @@ fn collect_entries<T: DirectoryTree>(
     entries: &[Entry],
     nested_scopes: &HashSet<String>,
     out: &mut Vec<ActualEntry>,
-) -> Result<(), T::Error> {
-    for (name, kind) in tree.list(&join(scope, relative_prefix))? {
+) -> Listed<(), T::Error> {
+    let dir = join(scope, relative_prefix);
+    let listing = tree.list(&dir).map_err(|error| Unlisted { dir, error })?;
+    for (name, kind) in listing {
         if relative_prefix.is_empty() && name == FLINT_FILE_NAME {
             continue;
         }
@@ -615,6 +652,15 @@ mod tests {
     use super::*;
     use crate::memory_tree::{MemoryTree, NotFound};
     use crate::origin::Origin;
+
+    /// [`super::run`], for a tree that can be listed while looking for
+    /// `.flint` files, as almost every test's can.
+    fn run<T: DirectoryTree>(tree: &T) -> Report<T::Error>
+    where
+        T::Error: std::fmt::Debug,
+    {
+        super::run(tree).expect("every directory can be listed")
+    }
 
     /// A tree with `files` (each `(path, contents)`) and `dirs` in it.
     fn tree(files: &[(&str, &str)], dirs: &[&str]) -> MemoryTree {
@@ -644,10 +690,23 @@ mod tests {
     }
 
     #[test]
-    fn a_tree_without_a_flint_file_has_no_scopes_and_passes() {
-        let report = run(&tree(&[("a.txt", "")], &[])).unwrap();
+    fn a_tree_without_a_flint_file_has_no_scopes_and_fails() {
+        let report = run(&tree(&[("a.txt", "")], &[]));
         assert!(report.scopes.is_empty());
-        assert!(report.passed());
+        assert!(!report.passed());
+    }
+
+    #[test]
+    fn without_a_flint_file_at_the_root_nothing_else_is_looked_for() {
+        // Listing anything would fail the run.
+        let failing = FailingTree {
+            inner: tree(&[("a/.flint", "x.txt"), ("a/y.txt", "")], &[]),
+            broken_dir: "",
+            broken_flint: "none",
+        };
+        let report = run(&failing);
+        assert!(report.scopes.is_empty());
+        assert!(!report.passed());
     }
 
     #[test]
@@ -749,10 +808,10 @@ mod tests {
             fail_from: 2,
             listings: std::cell::Cell::new(0),
         };
-        let report = run(&tree).unwrap();
+        let report = run(&tree);
         assert!(matches!(
             &report.scopes[0].status,
-            ScopeStatus::ListError(NotFound(dir)) if dir == "docs"
+            ScopeStatus::ListError(Unlisted { dir, .. }) if dir == "docs"
         ));
     }
 
@@ -842,7 +901,7 @@ mod tests {
     /// each violation as its `Debug` text — enough to tell which entry
     /// and why, without spelling out every field.
     fn violations_in(tree: &MemoryTree) -> Vec<(String, Vec<String>)> {
-        checked(&run(tree).unwrap())
+        checked(&run(tree))
             .into_iter()
             .map(|(scope, violations)| {
                 (
@@ -981,15 +1040,38 @@ mod tests {
     }
 
     #[test]
+    fn a_nested_flint_file_s_rules_reach_into_a_folder_below_it_like_the_root_s() {
+        // `a/.flint`, not the root's, imports its rules into `a/b`'s check.
+        let tree = tree(
+            &[
+                (".flint", "a/\n"),
+                ("a/.flint", "!b/x.txt\nb/\n    y.txt\n"),
+                ("a/b/.flint", ""),
+                ("a/b/y.txt", ""),
+                ("a/b/z.txt", ""),
+            ],
+            &[],
+        );
+        assert_eq!(
+            violations_in(&tree),
+            vec![
+                (String::new(), vec![]),
+                ("a".to_string(), vec!["missing b/x.txt".to_string()]),
+                ("a/b".to_string(), vec!["unexpected z.txt".to_string()]),
+            ]
+        );
+    }
+
+    #[test]
     fn an_imported_missing_entry_sits_among_its_flint_file_s_own_in_rule_order() {
         let tree = tree(
             &[
                 (
-                    "a/.flint",
+                    ".flint",
                     "!first.txt\n!b/second.txt\n!b/third.txt\n!last.txt\nb/\nstray/\n",
                 ),
-                ("a/b/.flint", ""),
-                ("a/extra.txt", ""),
+                ("b/.flint", ""),
+                ("extra.txt", ""),
             ],
             &[],
         );
@@ -997,7 +1079,7 @@ mod tests {
             violations_in(&tree),
             vec![
                 (
-                    "a".to_string(),
+                    String::new(),
                     vec![
                         "missing first.txt".to_string(),
                         "missing b/second.txt".to_string(),
@@ -1006,7 +1088,7 @@ mod tests {
                         "unexpected extra.txt".to_string(),
                     ]
                 ),
-                ("a/b".to_string(), vec![]),
+                ("b".to_string(), vec![]),
             ]
         );
     }
@@ -1025,7 +1107,7 @@ mod tests {
             fail_from: 2,
             listings: std::cell::Cell::new(0),
         };
-        let report = run(&failing).unwrap();
+        let report = run(&failing);
         assert!(matches!(
             &report.scopes[0].status,
             ScopeStatus::ListError(_)
@@ -1057,14 +1139,14 @@ mod tests {
 
     #[test]
     fn the_root_flint_file_is_never_reported_as_unexpected() {
-        let report = run(&tree(&[(".flint", "a.txt"), ("a.txt", "")], &[])).unwrap();
+        let report = run(&tree(&[(".flint", "a.txt"), ("a.txt", "")], &[]));
         assert_eq!(checked(&report), vec![("", &[][..])]);
         assert!(report.passed());
     }
 
     #[test]
     fn unlisted_entries_are_reported_and_fail_the_run() {
-        let report = run(&tree(&[(".flint", "a.txt"), ("b.txt", "")], &["c"])).unwrap();
+        let report = run(&tree(&[(".flint", "a.txt"), ("b.txt", "")], &["c"]));
         assert_eq!(
             checked(&report),
             vec![("", &[unexpected("b.txt"), unexpected("c")][..])]
@@ -1074,12 +1156,12 @@ mod tests {
 
     #[test]
     fn a_bare_directory_rule_permits_only_an_empty_directory() {
-        let report = run(&tree(&[(".flint", "src/"), ("src/anything.rs", "")], &[])).unwrap();
+        let report = run(&tree(&[(".flint", "src/"), ("src/anything.rs", "")], &[]));
         assert_eq!(
             checked(&report),
             vec![("", &[unexpected("src/anything.rs")][..])]
         );
-        let report = run(&tree(&[(".flint", "src/")], &["src"])).unwrap();
+        let report = run(&tree(&[(".flint", "src/")], &["src"]));
         assert!(report.passed());
     }
 
@@ -1091,7 +1173,7 @@ mod tests {
             ("b/y.txt", ""),
         ];
         assert_eq!(
-            checked(&run(&tree(&files, &[])).unwrap()),
+            checked(&run(&tree(&files, &[]))),
             vec![("", &[unexpected("a/x.txt"), unexpected("b/y.txt")][..])]
         );
     }
@@ -1105,7 +1187,7 @@ mod tests {
             ("target/.rustc_info.json", ""),
             ("target/debug/.fingerprint/c", ""),
         ];
-        assert!(run(&tree(&files, &[])).unwrap().passed());
+        assert!(run(&tree(&files, &[])).passed());
     }
 
     #[test]
@@ -1117,7 +1199,7 @@ mod tests {
             ("src/.cache/c.rs", ""),
         ];
         assert_eq!(
-            checked(&run(&tree(&files, &[])).unwrap()),
+            checked(&run(&tree(&files, &[]))),
             vec![("", &[unexpected("src/.cache")][..])]
         );
     }
@@ -1126,7 +1208,7 @@ mod tests {
     fn a_dot_named_directory_is_walked_like_any_other() {
         let files = [(".flint", ".github/\n"), (".github/stray.yml", "")];
         assert_eq!(
-            checked(&run(&tree(&files, &[])).unwrap()),
+            checked(&run(&tree(&files, &[]))),
             vec![("", &[unexpected(".github/stray.yml")][..])]
         );
     }
@@ -1140,7 +1222,7 @@ mod tests {
             ("junk/two", ""),
         ];
         assert_eq!(
-            checked(&run(&tree(&files, &[])).unwrap()),
+            checked(&run(&tree(&files, &[]))),
             vec![("", &[unexpected("junk")][..])]
         );
     }
@@ -1152,7 +1234,7 @@ mod tests {
             ("src/main.rs", ""),
             ("src/extra.rs", ""),
         ];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         assert_eq!(
             checked(&report),
             vec![("", &[unexpected("src/extra.rs")][..])]
@@ -1164,7 +1246,7 @@ mod tests {
         // A `.flint` *directory* in a governed subdirectory isn't a scope's
         // file (it can't be read as one), so it's reported like anything
         // else would be.
-        let report = run(&tree(&[(".flint", "src/a.rs")], &["src/.flint"])).unwrap();
+        let report = run(&tree(&[(".flint", "src/a.rs")], &["src/.flint"]));
         assert_eq!(
             checked(&report),
             vec![("", &[unexpected("src/.flint")][..])]
@@ -1174,20 +1256,21 @@ mod tests {
     #[test]
     fn nested_scopes_are_found_at_any_depth_and_sorted() {
         let files = [("z/.flint", ""), ("a/b/c/.flint", ""), (".flint", "a/\nz/")];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         let scopes: Vec<&str> = report.scopes.iter().map(|s| s.scope.as_str()).collect();
         assert_eq!(scopes, vec!["", "a/b/c", "z"]);
     }
 
     #[test]
-    fn a_tree_with_only_nested_flint_files_has_no_root_scope() {
-        let report = run(&tree(&[("a/.flint", "x.txt"), ("a/y.txt", "")], &[])).unwrap();
-        assert_eq!(checked(&report), vec![("a", &[unexpected("y.txt")][..])]);
+    fn a_tree_with_only_nested_flint_files_is_not_checked() {
+        let report = run(&tree(&[("a/.flint", "x.txt"), ("a/y.txt", "")], &[]));
+        assert!(report.scopes.is_empty());
+        assert!(!report.passed());
     }
 
     #[test]
     fn dot_named_directories_are_searched_for_scopes() {
-        let report = run(&tree(&[(".flint", ".git/"), (".git/.flint", "")], &[])).unwrap();
+        let report = run(&tree(&[(".flint", ".git/"), (".git/.flint", "")], &[]));
         let scopes: Vec<&str> = report.scopes.iter().map(|s| s.scope.as_str()).collect();
         assert_eq!(scopes, vec!["", ".git"]);
     }
@@ -1195,14 +1278,17 @@ mod tests {
     #[test]
     fn a_dot_named_file_does_not_stop_scope_discovery() {
         // A file is never recursed into, dot-named or not.
-        let report = run(&tree(&[(".hidden", ""), ("a/.flint", "")], &[])).unwrap();
+        let report = run(&tree(
+            &[(".flint", "a/"), (".hidden", ""), ("a/.flint", "")],
+            &[],
+        ));
         let scopes: Vec<&str> = report.scopes.iter().map(|s| s.scope.as_str()).collect();
-        assert_eq!(scopes, vec!["a"]);
+        assert_eq!(scopes, vec!["", "a"]);
     }
 
     #[test]
     fn a_directory_named_flint_is_not_a_scope() {
-        let report = run(&tree(&[], &[".flint"])).unwrap();
+        let report = run(&tree(&[], &[".flint"]));
         assert!(report.scopes.is_empty());
     }
 
@@ -1214,7 +1300,7 @@ mod tests {
             ("packages/foo/README.md", ""),
             ("packages/foo/stray.txt", ""),
         ];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         assert_eq!(
             checked(&report),
             vec![
@@ -1232,7 +1318,7 @@ mod tests {
             ("packages/foo/README.md", ""),
             ("packages/foo/LICENSE", ""),
         ];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         assert_eq!(
             checked(&report),
             vec![("", &[][..]), ("packages/foo", &[][..])]
@@ -1249,7 +1335,7 @@ mod tests {
             ("a/src/main.rs", ""),
             ("a/src/extra.rs", ""),
         ];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         assert_eq!(
             checked(&report),
             vec![("", &[][..]), ("a", &[unexpected("src/extra.rs")][..])]
@@ -1259,7 +1345,7 @@ mod tests {
     #[test]
     fn a_parse_error_is_reported_for_its_own_scope_only() {
         let files = [(".flint", "a/\nb.txt"), ("a/.flint", "{{"), ("c.txt", "")];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         assert!(matches!(
             &report.scopes[0].status,
             ScopeStatus::Checked(v) if *v == [unexpected("c.txt")]
@@ -1279,7 +1365,7 @@ mod tests {
             ("a/.flint", ""),
             ("a/b.txt", ""),
         ];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         assert!(matches!(
             report.scopes[0].status,
             ScopeStatus::ParseError(_)
@@ -1293,10 +1379,10 @@ mod tests {
     #[test]
     fn a_passing_run_needs_every_scope_clean() {
         let files = [(".flint", "a/"), ("a/.flint", ""), ("a/b.txt", "")];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         assert!(!report.passed());
         let files = [(".flint", "a/"), ("a/.flint", "b.txt"), ("a/b.txt", "")];
-        assert!(run(&tree(&files, &[])).unwrap().passed());
+        assert!(run(&tree(&files, &[])).passed());
     }
 
     /// A [`MemoryTree`] that fails to list `broken_dir`, and to read
@@ -1329,14 +1415,48 @@ mod tests {
         }
     }
 
-    #[test]
-    fn failing_to_list_a_directory_while_finding_scopes_fails_the_run() {
+    /// The directory a run that `tree` fails to list `broken_dir` in
+    /// stops at, if any.
+    fn stopped_at(
+        files: &[(&str, &str)],
+        dirs: &[&str],
+        broken_dir: &'static str,
+    ) -> Option<String> {
         let failing = FailingTree {
-            inner: tree(&[(".flint", "")], &["sub"]),
-            broken_dir: "sub",
+            inner: tree(files, dirs),
+            broken_dir,
             broken_flint: "none",
         };
-        assert_eq!(run(&failing).unwrap_err(), NotFound("sub".to_string()));
+        super::run(&failing).err().map(|unlisted| {
+            assert_eq!(unlisted.error, NotFound(unlisted.dir.clone()));
+            unlisted.dir
+        })
+    }
+
+    #[test]
+    fn a_directory_that_cannot_be_listed_stops_the_run_whatever_the_rules() {
+        let files = [(".flint", "**"), ("a/b/c.txt", "")];
+        for broken in ["", "a", "a/b"] {
+            assert_eq!(stopped_at(&files, &[], broken).as_deref(), Some(broken));
+        }
+        // No rule looks inside `sub`, but the search for `.flint` files
+        // does.
+        assert_eq!(
+            stopped_at(&[(".flint", "z/")], &["sub"], "sub").as_deref(),
+            Some("sub")
+        );
+        assert_eq!(stopped_at(&files, &[], "elsewhere"), None);
+    }
+
+    #[test]
+    fn a_directory_inside_one_that_cannot_be_listed_is_never_reached() {
+        let failing = FailingList {
+            inner: &tree(&[(".flint", "**")], &["a/b"]),
+            failing: "a",
+            fail_from: 1,
+            listings: std::cell::Cell::new(0),
+        };
+        assert_eq!(super::run(&failing).unwrap_err().dir, "a");
     }
 
     #[test]
@@ -1346,7 +1466,7 @@ mod tests {
             broken_dir: "none",
             broken_flint: "a",
         };
-        let report = run(&failing).unwrap();
+        let report = run(&failing);
         assert!(matches!(report.scopes[0].status, ScopeStatus::Checked(_)));
         assert!(matches!(
             &report.scopes[1].status,
@@ -1366,10 +1486,10 @@ mod tests {
             fail_from: 2,
             listings: std::cell::Cell::new(0),
         };
-        let report = run(&failing).unwrap();
+        let report = run(&failing);
         assert!(matches!(
             &report.scopes[0].status,
-            ScopeStatus::ListError(NotFound(dir)) if dir == ".config"
+            ScopeStatus::ListError(Unlisted { dir, .. }) if dir == ".config"
         ));
         assert!(!report.passed());
     }
@@ -1380,7 +1500,7 @@ mod tests {
             (".flint", "a/\n    !LICENSE"),
             ("a/.flint", "# readme\n!README.md"),
         ];
-        let report = run(&tree(&files, &[])).unwrap();
+        let report = run(&tree(&files, &[]));
         let origin = |scope: &str, line| Origin {
             scope: scope.to_string(),
             line,

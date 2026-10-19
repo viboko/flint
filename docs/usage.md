@@ -27,7 +27,9 @@ exactly as it would if invoked from inside that directory.
 
 flint looks for files named `.flint` in the directory it's checking and
 every subdirectory beneath it, and checks each one it finds against the
-actual contents of its own directory. See
+actual contents of its own directory. The directory it's checking must
+have one: otherwise flint prints `No flint file found` and exits with
+status `1`, without searching any further. See
 [`docs/flint-file-format.md`](flint-file-format.md) for the full `.flint`
 file format, including how multiple `.flint` files in one tree interact.
 
@@ -46,6 +48,12 @@ Found 2 unexpected entries:
 When nothing is wrong, flint prints `All files match`. Paths are printed
 exactly as they are on disk, including a `.flint` file's own path when a
 run involves more than one.
+
+Anything flint couldn't do goes to standard error instead: a `.flint`
+file it couldn't read or parse, or a folder it couldn't list, naming the
+folder and why — which stops the run before anything is checked. flint
+exits with status `0` when everything matched, and `1` when anything
+didn't or anything failed.
 
 ## Command-line arguments
 

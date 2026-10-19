@@ -14,7 +14,7 @@
 use std::fmt::Display;
 
 use crate::checker::{GroupValue, Violation};
-use crate::run::{Report, ScopeStatus};
+use crate::run::{Report, ScopeStatus, Unlisted};
 
 /// Which output stream a [`Line`] belongs on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,8 +54,9 @@ impl Line {
 }
 
 /// Everything flint prints for `report`, in order: each scope's
-/// violations or failure, then the success message if the run passed — or
-/// just "No flint file found" if there was no `.flint` file at all.
+/// violations or failure,
+/// then the success message if the run passed — or just an error saying
+/// so if the root has no `.flint` file of its own.
 ///
 /// With exactly one `.flint` file in the whole tree (the common case),
 /// violations are printed plainly; with more than one, each scope's are
@@ -64,8 +65,7 @@ impl Line {
 #[must_use]
 pub fn render<E: Display>(report: &Report<E>) -> Vec<Line> {
     if report.scopes.is_empty() {
-        // Kept as an exact string per spec.
-        return vec![Line::stdout("No flint file found")];
+        return vec![Line::stderr(NO_FLINT_FILE)];
     }
 
     let qualify_output = report.scopes.len() > 1;
@@ -88,9 +88,10 @@ pub fn render<E: Display>(report: &Report<E>) -> Vec<Line> {
                 lines.extend(block.into_iter().map(Line::stdout));
                 printed_violations = true;
             }
-            ScopeStatus::ListError(err) => {
+            ScopeStatus::ListError(Unlisted { dir, error }) => {
                 lines.push(Line::stderr(format!(
-                    "Failed to read {flint_path}'s directory: {err}"
+                    "Failed to check {flint_path}, as {} couldn't be listed: {error}",
+                    dir_path(dir)
                 )));
             }
             ScopeStatus::ParseError(err) => {
@@ -106,6 +107,28 @@ pub fn render<E: Display>(report: &Report<E>) -> Vec<Line> {
         lines.push(Line::stdout("All files match"));
     }
     lines
+}
+
+/// What flint prints when [`crate::run::run`] stops at a directory it
+/// couldn't list.
+#[must_use]
+pub fn render_unlisted<E: Display>(unlisted: &Unlisted<E>) -> Line {
+    Line::stderr(format!(
+        "Couldn't list {}, so nothing was checked: {}",
+        dir_path(&unlisted.dir),
+        unlisted.error
+    ))
+}
+
+/// What flint prints when the directory it checks has no `.flint` file:
+/// without one there, it looks for none further down either.
+pub const NO_FLINT_FILE: &str = "No flint file found in the folder being checked. \
+Add one there, even one that allows everything, to check it and any flint files inside it.";
+
+/// The path to show a user for `dir`, a `/`-joined path relative to the
+/// invocation directory, or `""` for the invocation directory itself.
+fn dir_path(dir: &str) -> &str {
+    if dir.is_empty() { "." } else { dir }
 }
 
 /// The `.flint` file path to show a user for `scope_dir` — a `/`-joined
@@ -286,6 +309,13 @@ mod tests {
         }
     }
 
+    fn unlisted(dir: &str, error: &str) -> Unlisted<String> {
+        Unlisted {
+            dir: dir.to_string(),
+            error: error.to_string(),
+        }
+    }
+
     /// `lines` as one string, one line each, with each stderr line marked
     /// with a leading `!`.
     fn text(lines: &[Line]) -> String {
@@ -300,10 +330,21 @@ mod tests {
     }
 
     #[test]
-    fn no_flint_file_is_reported_plainly() {
+    fn no_flint_file_is_an_error() {
+        assert_eq!(render(&report(vec![])), vec![Line::stderr(NO_FLINT_FILE)]);
+    }
+
+    #[test]
+    fn an_unlisted_directory_is_named() {
         assert_eq!(
-            render(&report(vec![])),
-            vec![Line::stdout("No flint file found")]
+            render_unlisted(&unlisted("Library/Mail", "Operation not permitted")),
+            Line::stderr(
+                "Couldn't list Library/Mail, so nothing was checked: Operation not permitted"
+            )
+        );
+        assert_eq!(
+            render_unlisted(&unlisted("", "denied")).text,
+            "Couldn't list ., so nothing was checked: denied"
         );
     }
 
@@ -384,7 +425,7 @@ Found 2 unexpected entries:
         let lines = render(&report(vec![
             ("", ScopeStatus::ReadError("no access".to_string())),
             ("a", ScopeStatus::ParseError(parse_error.clone())),
-            ("b", ScopeStatus::ListError("gone".to_string())),
+            ("b", ScopeStatus::ListError(unlisted("b/private", "gone"))),
             ("c", ScopeStatus::Checked(vec![])),
         ]));
         assert_eq!(
@@ -392,7 +433,7 @@ Found 2 unexpected entries:
             format!(
                 "!Failed to read .flint: no access
 !Failed to parse a/.flint: {parse_error}
-!Failed to read b/.flint's directory: gone"
+!Failed to check b/.flint, as b/private couldn't be listed: gone"
             )
         );
     }
@@ -564,7 +605,7 @@ Missing 1 required entry:
             ]),
             report(vec![("", ScopeStatus::ReadError("no access".to_string()))]),
             report(vec![("", ScopeStatus::ParseError(parse_error))]),
-            report(vec![("", ScopeStatus::ListError("gone".to_string()))]),
+            report(vec![("", ScopeStatus::ListError(unlisted("a", "gone")))]),
         ]
     }
 
