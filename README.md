@@ -113,8 +113,8 @@ build provenance attestation you can check with the
 [GitHub CLI](https://cli.github.com/):
 
 ```bash
-shasum -a 256 -c flint-v0.1.0-aarch64-apple-darwin.tar.gz.sha256
-gh attestation verify flint-v0.1.0-aarch64-apple-darwin.tar.gz --repo viboko/flint
+shasum -a 256 -c flint-v0.2.0-aarch64-apple-darwin.tar.gz.sha256
+gh attestation verify flint-v0.2.0-aarch64-apple-darwin.tar.gz --repo viboko/flint
 ```
 
 To build from a checkout of this repository instead, with
