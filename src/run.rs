@@ -1040,6 +1040,29 @@ mod tests {
     }
 
     #[test]
+    fn a_nested_flint_file_s_rules_reach_into_a_folder_below_it_like_the_root_s() {
+        // `a/.flint`, not the root's, imports its rules into `a/b`'s check.
+        let tree = tree(
+            &[
+                (".flint", "a/\n"),
+                ("a/.flint", "!b/x.txt\nb/\n    y.txt\n"),
+                ("a/b/.flint", ""),
+                ("a/b/y.txt", ""),
+                ("a/b/z.txt", ""),
+            ],
+            &[],
+        );
+        assert_eq!(
+            violations_in(&tree),
+            vec![
+                (String::new(), vec![]),
+                ("a".to_string(), vec!["missing b/x.txt".to_string()]),
+                ("a/b".to_string(), vec!["unexpected z.txt".to_string()]),
+            ]
+        );
+    }
+
+    #[test]
     fn an_imported_missing_entry_sits_among_its_flint_file_s_own_in_rule_order() {
         let tree = tree(
             &[
