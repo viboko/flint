@@ -3,7 +3,7 @@
 
 [package]
 name = "flint-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 # Minimum supported Rust version — `just msrv` checks it. 1.85 is the
 # oldest release that supports edition 2024. See docs/tooling.md before

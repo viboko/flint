@@ -9,6 +9,8 @@ minor release.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-19
+
 ### Changed
 
 - **Breaking:** flint now needs a `.flint` file in the directory it's
