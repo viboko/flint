@@ -1,9 +1,0 @@
-User-agent: *
-Allow: /
-# Coverage and benchmark reports, and pull requests' previews,
-# published to the same site.
-Disallow: /pr-
-Disallow: /coverage/
-Disallow: /benchmarks/
-
-Sitemap: https://flint.viboko.dev/sitemap.xml
