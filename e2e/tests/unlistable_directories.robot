@@ -18,32 +18,30 @@ Test Teardown    Restore Permissions And Clean Up
 
 
 *** Test Cases ***
-A Folder No Rule Looks Inside Is Skipped With A Warning
-    [Documentation]    Only the search for nested flint files lists `secret`, which can't
-    ...    hold one that flint finds, so it's noted and the search carries on.
+A Folder That Cannot Be Listed Stops The Run Before Checking
+    [Documentation]    `**` allows anything in `secret`, but flint can't see what's
+    ...    there, nor whether a flint file below it adds rules.
     ${dir}=    Create Empty Test Directory
-    Write Flint File    ${dir}    later/\n
-    Write Nested Flint File    ${dir}    later    ${EMPTY}
-    Create File    ${dir}/later/stray.txt    found by the search after secret
+    Write Flint File    ${dir}    **\n
     Create File    ${dir}/secret/notes.txt    private
     Make Folder Unlistable    ${dir}/secret
     ${result}=    Run Flint In Directory    ${dir}
     Should Be Equal As Integers    ${result.rc}    1
-    Should Contain    ${result.stderr}
-    ...    Skipped secret while looking for flint files, as it couldn't be listed:
-    Should Contain    ${result.stdout}    later/stray.txt
+    Should Contain    ${result.stderr}    Couldn't list secret, so nothing was checked:
+    Should Be Empty    ${result.stdout}
 
-A Folder A Rule Looks Inside Fails Its Flint File
+A Folder No Rule Allows Still Stops The Run
+    [Documentation]    flint looks for flint files everywhere, so it meets `secret` even
+    ...    though `secret` itself would be reported as unexpected.
     ${dir}=    Create Empty Test Directory
-    Write Flint File    ${dir}    readme.txt\nsecret/**\n
+    Write Flint File    ${dir}    readme.txt\n
     Create File    ${dir}/readme.txt    hello
     Create File    ${dir}/secret/notes.txt    private
     Make Folder Unlistable    ${dir}/secret
     ${result}=    Run Flint In Directory    ${dir}
     Should Be Equal As Integers    ${result.rc}    1
-    Should Contain    ${result.stderr}    Failed to check .flint, as secret couldn't be listed:
-    Should Not Contain    ${result.stderr}    Skipped
-    Should Not Contain    ${result.stdout}    All files match
+    Should Contain    ${result.stderr}    Couldn't list secret, so nothing was checked:
+    Should Be Empty    ${result.stdout}
 
 
 *** Keywords ***

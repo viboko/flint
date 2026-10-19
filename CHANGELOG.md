@@ -18,11 +18,10 @@ minor release.
   never meant to be checked, such as a home directory, is quick and
   clear. A tree that only had `.flint` files further down needs one at
   the top too; a single `**` rule allows anything.
-- A folder flint can't list no longer stops the whole run with
-  `Failed to scan .`. While searching for `.flint` files, it's skipped
-  with a warning naming it. Where a `.flint` file's rules look inside
-  it, that file's check fails, naming the folder and why, and every
-  other `.flint` file is still checked.
+- A folder flint can't list now stops the run with an error naming it
+  and saying why — `Couldn't list Library/Mail, so nothing was checked:
+  Operation not permitted` — rather than `Failed to scan .`, which named
+  the folder being checked instead.
 - On macOS, when a folder can't be listed because the system keeps it
   private (such as Mail's in `~/Library`), flint says how to give the
   terminal Full Disk Access.

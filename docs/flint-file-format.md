@@ -559,7 +559,7 @@ comment), `{`/`}` (start a `{{ variable }}` placeholder), `*` (a wildcard),
 |---|---|---|---|
 | `a.txt` | `a.txt` (a file) | `intruder.txt`; a *directory* named `a.txt` | [`entries_not_in_allow_list_are_violations`](../src/checker.rs#L1357-L1362)<br>[`file_only_entry_matches_a_file_but_not_a_directory`](../src/checker.rs#L1474-L1482) |
 | `src/` | a *directory* named `src` | a *file* named `src` | [`directory_only_entry_matches_a_directory_but_not_a_file`](../src/checker.rs#L1467-L1472) |
-| `src/` | an *empty* directory named `src` | anything inside `src` (no rule reaches inside it) | [`a_bare_directory_rule_permits_only_an_empty_directory`](../src/run.rs#L1144-L1153) |
+| `src/` | an *empty* directory named `src` | anything inside `src` (no rule reaches inside it) | [`a_bare_directory_rule_permits_only_an_empty_directory`](../src/run.rs#L1134-L1143) |
 | `{{ name }}/` | any directory (`name` = its name) | any file, even with the same name | [`trailing_slash_on_template_line_marks_directory_only`](../src/flint_file.rs#L1344-L1355)<br>[`template_with_trailing_slash_only_matches_directories`](../src/checker.rs#L1484-L1489) |
 | `{{ name }}Manager.py` | `HomeManager.py` (`name` = `Home`) | `Manager.py` (empty value not allowed) | [`single_variable_matches_and_extracts_value`](../src/template.rs#L857-L867)<br>[`no_structural_match_returns_none`](../src/template.rs#L899-L907) |
 | `{{ name }}Manager.{{ extension }}` | `HomeManager.py` (`name` = `Home`, `extension` = `py`) | `HomeManager` (no `.` before the extension) | [`multiple_variables_extract_in_order`](../src/template.rs#L909-L923)<br>[`multiple_variables_require_the_literal_separator_to_match`](../src/template.rs#L949-L957) |
@@ -584,7 +584,7 @@ comment), `{`/`}` (start a `{{ variable }}` placeholder), `*` (a wildcard),
 | `!src/util.rs` | required: fails unless `src/util.rs` exists | — | [`required_nested_rule_reports_missing_with_nested_path`](../src/checker.rs#L1944-L1948) |
 | `src/**/*.py` | `.py` files under `src` at any depth, including directly in `src` | `src/notes.txt`; `src/.git/` (`**` with more after it doesn't reach into dot-named directories) | [`any_depth_matches_zero_or_more_absorbed_components`](../src/template.rs#L1093-L1101)<br>[`any_depth_skips_a_dot_named_absorbed_directory`](../src/template.rs#L1110-L1114) |
 | `.git/**` | anything inside `.git`, at any depth | — | [`explicit_literal_dot_prefix_before_any_depth_is_unaffected_by_dotfile_skip`](../src/template.rs#L1178-L1189) |
-| `target/**` | anything inside `target`, at any depth, dot names included | — | [`a_trailing_any_depth_allows_everything_in_a_directory_dot_names_included`](../src/run.rs#L1168-L1178)<br>[`trailing_any_depth_matches_dot_names_at_any_depth`](../src/template.rs#L1124-L1135) |
+| `target/**` | anything inside `target`, at any depth, dot names included | — | [`a_trailing_any_depth_allows_everything_in_a_directory_dot_names_included`](../src/run.rs#L1158-L1168)<br>[`trailing_any_depth_matches_dot_names_at_any_depth`](../src/template.rs#L1124-L1135) |
 | `src/`<br>`&nbsp;&nbsp;util.rs` | identical to `src/util.rs` above — a file `util.rs` inside directory `src` | `util.rs` at the top level | [`indented_child_expands_to_the_same_entry_as_flat_form`](../src/flint_file.rs#L1439-L1448) |
 | `{{ name }}/`<br>`&nbsp;&nbsp;!{{ name }}Manager.py`<br>`&nbsp;&nbsp;!{{ name }}Presenter.py` | `Apple/AppleManager.py`<br>`Apple/ApplePresenter.py`, **and, independently,** `Banana/BananaManager.py`<br>`Banana/BananaPresenter.py` | `Banana/BananaManager.py` alone — `Apple/`'s own `ApplePresenter.py` doesn't satisfy `Banana/`'s obligation | [`required_marker_on_indented_child_is_independent_of_its_sibling`](../src/flint_file.rs#L1554-L1569)<br>[`required_template_is_satisfied_independently_per_matching_directory_instance`](../src/checker.rs#L1668-L1701) |
 | `{{ name }}/`<br>`&nbsp;&nbsp;!{{ name }}/{{ name }}.txt` | `blah/blah/blah.txt`; no folders at all | an empty `blah/` (`blah/blah/blah.txt` missing — the `!` requires the `blah/blah/` folder too); `blah/blah/` with no `blah.txt` in it | [`a_required_line_requires_each_folder_it_names`](../src/checker.rs#L2789-L2798)<br>[`a_required_line_s_folder_still_needs_its_file`](../src/checker.rs#L2800-L2807)<br>[`a_required_line_does_not_require_the_folders_it_is_indented_under`](../src/checker.rs#L2816-L2820) |
@@ -667,11 +667,12 @@ consistently, flint also never descends into one while searching for
 `.flint` files, even if it points at a real directory. Dot-named
 directories are searched like any other.
 
-**A folder flint can't list is skipped while searching.** flint prints
-a warning naming it — any `.flint` file inside it goes unfound — and
-carries on with the rest of the tree. The warning alone doesn't change
-the exit status. A folder that some rule looks inside is a different
-matter: see "What counts as an error" below.
+**A folder flint can't list stops the run.** Searching for `.flint`
+files goes into every folder, whatever the rules say, so it meets any
+folder flint can't list before checking anything. flint then stops,
+printing which folder and why, and exits with status `1`: it can't say
+whether a tree passes without seeing all of it, or know whether a
+`.flint` file inside that folder would add rules.
 
 ### Rules compose (cascade) across `.flint` files
 
@@ -719,8 +720,8 @@ takes any characters too.
   Linux allows a file name to be any bytes at all — say, one written in
   an older encoding like Latin-1. A `.flint` file is text, so no rule
   could name such a file, and flint doesn't guess: it treats the folder
-  holding it as one it can't list (see "What counts as an error"
-  below), printing the name with the bad bytes escaped
+  holding it as one it can't list (see "Multiple `.flint` files"
+  above), printing the name with the bad bytes escaped
   (`"caf\xE9.txt"`).
 
 `|format` case-style filters know about capitals in every script, too —
@@ -765,11 +766,9 @@ unaffected and still parsed and checked normally (see "Multiple `.flint`
 files" above). The run as a whole still exits with status `1` if any
 `.flint` file anywhere failed to parse.
 
-A folder that a `.flint` file's rules look inside, but that flint can't
-list — one the user running flint has no permission to read, say — fails
-that `.flint` file the same way: flint prints which folder and why, skips
-that file's check, and exits with status `1`, while still checking every
-other `.flint` file. On macOS, a folder the system keeps private (Mail's
-and Safari's, in `~/Library`) can't be listed until the terminal is
-given Full Disk Access in System Settings, under Privacy & Security;
-flint says so when it meets one.
+A folder flint can't list — one the user running flint has no
+permission to read, say — stops the run before anything is checked (see
+"Multiple `.flint` files" above). On macOS, a folder the system keeps
+private (Mail's and Safari's, in `~/Library`) can't be listed until the
+terminal is given Full Disk Access in System Settings, under Privacy &
+Security; flint says so when it meets one.

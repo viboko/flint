@@ -60,17 +60,12 @@ pub trait DirectoryTree {
 pub struct Report<E> {
     /// One entry per directory containing a `.flint` file.
     pub scopes: Vec<ScopeReport<E>>,
-    /// Every directory that couldn't be listed while looking for `.flint`
-    /// files, so any inside it went unfound — sorted by path, and leaving
-    /// out any a scope's own [`ScopeStatus::ListError`] already reports.
-    pub skipped: Vec<Unlisted<E>>,
 }
 
 impl<E> Report<E> {
     /// Whether the root has a `.flint` file, every `.flint` file was read
     /// and parsed, and every directory matched its rules — what decides
-    /// flint's exit code. A [`Self::skipped`] directory doesn't fail it:
-    /// no `.flint` file found governs what's in it.
+    /// flint's exit code.
     #[must_use]
     pub fn passed(&self) -> bool {
         !self.scopes.is_empty()
@@ -103,7 +98,7 @@ pub struct ScopeReport<E> {
 
 /// What a step that lists directories gives: `T`, or the first directory
 /// it couldn't list.
-type Listed<T, E> = Result<T, Unlisted<E>>;
+pub type Listed<T, E> = Result<T, Unlisted<E>>;
 
 /// What happened checking one scope.
 #[derive(Debug)]
@@ -116,7 +111,9 @@ pub enum ScopeStatus<E> {
     /// The scope's `.flint` file couldn't be read.
     ReadError(E),
     /// One of the directories the scope governs couldn't be listed, so
-    /// the scope couldn't be checked.
+    /// the scope couldn't be checked. [`run`] stops before checking
+    /// anything if a directory can't be listed, so this only happens if
+    /// one became unlistable since.
     ListError(Unlisted<E>),
 }
 
@@ -130,18 +127,19 @@ pub enum ScopeStatus<E> {
 /// walking a whole tree that isn't (a home directory, say) to find out.
 ///
 /// A failure inside one scope is reported as that scope's
-/// [`ScopeStatus`], and the other scopes are still checked; a directory
-/// that can't be listed while looking for scopes is noted in
-/// [`Report::skipped`], and the search carries on past it.
-pub fn run<T: DirectoryTree>(tree: &T) -> Report<T::Error> {
+/// [`ScopeStatus`], and the other scopes are still checked.
+///
+/// # Errors
+/// Returns `Err`, naming the directory, as soon as looking for `.flint`
+/// files meets one that can't be listed. That search goes everywhere, so
+/// it finds any such directory before checking starts — and a tree flint
+/// can't see all of can't pass, so there's no point checking the rest.
+pub fn run<T: DirectoryTree>(tree: &T) -> Listed<Report<T::Error>, T::Error> {
     if !tree.has_flint_file("") {
-        return Report {
-            scopes: Vec::new(),
-            skipped: Vec::new(),
-        };
+        return Ok(Report { scopes: Vec::new() });
     }
     let tree = &Composed::new(tree);
-    let (scopes, mut skipped) = discover_scopes(tree);
+    let scopes = discover_scopes(tree)?;
     let scope_refs: Vec<&str> = scopes.iter().map(String::as_str).collect();
 
     // Every scope's own `.flint` file, read and parsed once up front — an
@@ -174,14 +172,6 @@ pub fn run<T: DirectoryTree>(tree: &T) -> Report<T::Error> {
         })
         .collect();
     report_missing_where_written(&scope_refs, &mut checked);
-    let failed_scope_dirs: HashSet<&str> = checked
-        .iter()
-        .filter_map(|status| match status {
-            Some(ScopeStatus::ListError(unlisted)) => Some(unlisted.dir.as_str()),
-            _ => None,
-        })
-        .collect();
-    skipped.retain(|unlisted| !failed_scope_dirs.contains(unlisted.dir.as_str()));
 
     let scopes = scopes
         .into_iter()
@@ -195,7 +185,7 @@ pub fn run<T: DirectoryTree>(tree: &T) -> Report<T::Error> {
             },
         })
         .collect();
-    Report { scopes, skipped }
+    Ok(Report { scopes })
 }
 
 /// Moves each [`Violation::Missing`] that a scope's check found for a rule
@@ -574,17 +564,13 @@ fn join(dir: &str, name: &str) -> String {
 /// Dot-named directories (`.github`, `.config`, ...) are searched like any
 /// other: what's in them is as much a part of the project's layout.
 ///
-/// A directory that can't be listed is skipped, along with everything
-/// in it, and returned second, sorted by path — so one the user can't
-/// read, such as a folder macOS keeps private, doesn't stop the rest of
-/// the tree being checked.
-fn discover_scopes<T: DirectoryTree>(tree: &T) -> (Vec<String>, Vec<Unlisted<T::Error>>) {
+/// # Errors
+/// Returns `Err` for the first directory that can't be listed.
+fn discover_scopes<T: DirectoryTree>(tree: &T) -> Listed<Vec<String>, T::Error> {
     let mut scopes = Vec::new();
-    let mut skipped = Vec::new();
-    discover_scopes_at(tree, "", &mut scopes, &mut skipped);
+    discover_scopes_at(tree, "", &mut scopes)?;
     scopes.sort();
-    skipped.sort_by(|a, b| a.dir.cmp(&b.dir));
-    (scopes, skipped)
+    Ok(scopes)
 }
 
 /// Recursive helper for [`discover_scopes`].
@@ -592,24 +578,20 @@ fn discover_scopes_at<T: DirectoryTree>(
     tree: &T,
     dir: &str,
     scopes: &mut Vec<String>,
-    skipped: &mut Vec<Unlisted<T::Error>>,
-) {
+) -> Listed<(), T::Error> {
     if tree.has_flint_file(dir) {
         scopes.push(dir.to_string());
     }
-    match tree.list(dir) {
-        Ok(listing) => {
-            for (name, kind) in listing {
-                if kind == EntryKind::Directory {
-                    discover_scopes_at(tree, &join(dir, &name), scopes, skipped);
-                }
-            }
+    let listing = tree.list(dir).map_err(|error| Unlisted {
+        dir: dir.to_string(),
+        error,
+    })?;
+    for (name, kind) in listing {
+        if kind == EntryKind::Directory {
+            discover_scopes_at(tree, &join(dir, &name), scopes)?;
         }
-        Err(error) => skipped.push(Unlisted {
-            dir: dir.to_string(),
-            error,
-        }),
     }
+    Ok(())
 }
 
 /// Lists the entries inside `scope`'s directory, as paths relative to it,
@@ -671,6 +653,15 @@ mod tests {
     use crate::memory_tree::{MemoryTree, NotFound};
     use crate::origin::Origin;
 
+    /// [`super::run`], for a tree that can be listed while looking for
+    /// `.flint` files, as almost every test's can.
+    fn run<T: DirectoryTree>(tree: &T) -> Report<T::Error>
+    where
+        T::Error: std::fmt::Debug,
+    {
+        super::run(tree).expect("every directory can be listed")
+    }
+
     /// A tree with `files` (each `(path, contents)`) and `dirs` in it.
     fn tree(files: &[(&str, &str)], dirs: &[&str]) -> MemoryTree {
         let mut tree = MemoryTree::new();
@@ -707,7 +698,7 @@ mod tests {
 
     #[test]
     fn without_a_flint_file_at_the_root_nothing_else_is_looked_for() {
-        // Listing anything would fail, and be noted in `skipped`.
+        // Listing anything would fail the run.
         let failing = FailingTree {
             inner: tree(&[("a/.flint", "x.txt"), ("a/y.txt", "")], &[]),
             broken_dir: "",
@@ -715,7 +706,6 @@ mod tests {
         };
         let report = run(&failing);
         assert!(report.scopes.is_empty());
-        assert!(report.skipped.is_empty());
         assert!(!report.passed());
     }
 
@@ -1402,60 +1392,48 @@ mod tests {
         }
     }
 
-    #[test]
-    fn a_directory_that_cannot_be_listed_while_finding_scopes_is_skipped() {
-        // `sub` isn't one the root's rules look inside, so only finding
-        // scopes lists it.
+    /// The directory a run that `tree` fails to list `broken_dir` in
+    /// stops at, if any.
+    fn stopped_at(
+        files: &[(&str, &str)],
+        dirs: &[&str],
+        broken_dir: &'static str,
+    ) -> Option<String> {
         let failing = FailingTree {
-            inner: tree(&[(".flint", "z/"), ("z/.flint", "")], &["sub"]),
-            broken_dir: "sub",
+            inner: tree(files, dirs),
+            broken_dir,
             broken_flint: "none",
         };
-        let report = run(&failing);
+        super::run(&failing).err().map(|unlisted| {
+            assert_eq!(unlisted.error, NotFound(unlisted.dir.clone()));
+            unlisted.dir
+        })
+    }
+
+    #[test]
+    fn a_directory_that_cannot_be_listed_stops_the_run_whatever_the_rules() {
+        let files = [(".flint", "**"), ("a/b/c.txt", "")];
+        for broken in ["", "a", "a/b"] {
+            assert_eq!(stopped_at(&files, &[], broken).as_deref(), Some(broken));
+        }
+        // No rule looks inside `sub`, but the search for `.flint` files
+        // does.
         assert_eq!(
-            checked(&report),
-            vec![("", &[unexpected("sub")][..]), ("z", &[][..])]
+            stopped_at(&[(".flint", "z/")], &["sub"], "sub").as_deref(),
+            Some("sub")
         );
-        let skipped: Vec<(&str, &NotFound)> = report
-            .skipped
-            .iter()
-            .map(|unlisted| (unlisted.dir.as_str(), &unlisted.error))
-            .collect();
-        assert_eq!(skipped, vec![("sub", &NotFound("sub".to_string()))]);
+        assert_eq!(stopped_at(&files, &[], "elsewhere"), None);
     }
 
     #[test]
-    fn a_directory_that_cannot_be_listed_is_not_skipped_where_its_scope_fails() {
-        // `.config` fails both while finding scopes and once the walk
-        // reaches it; the root's own failure is the one reported.
-        let failing = FailingTree {
-            inner: tree(&[(".flint", ".config/x")], &[".config"]),
-            broken_dir: ".config",
-            broken_flint: "none",
+    fn a_directory_inside_one_that_cannot_be_listed_is_never_reached() {
+        let failing = FailingList {
+            inner: &tree(&[(".flint", "**")], &["a/b"]),
+            failing: "a",
+            fail_from: 1,
+            listings: std::cell::Cell::new(0),
         };
-        let report = run(&failing);
-        assert!(matches!(
-            &report.scopes[0].status,
-            ScopeStatus::ListError(Unlisted { dir, .. }) if dir == ".config"
-        ));
-        assert!(report.skipped.is_empty());
-    }
-
-    #[test]
-    fn a_root_that_cannot_be_listed_fails_its_own_check() {
-        let failing = FailingTree {
-            inner: tree(&[(".flint", "")], &[]),
-            broken_dir: "",
-            broken_flint: "none",
-        };
-        let report = run(&failing);
-        assert!(matches!(
-            &report.scopes[..],
-            [ScopeReport { status: ScopeStatus::ListError(Unlisted { dir, .. }), .. }]
-                if dir.is_empty()
-        ));
-        assert!(report.skipped.is_empty());
-        assert!(!report.passed());
+        assert_eq!(super::run(&failing).unwrap_err().dir, "a");
     }
 
     #[test]

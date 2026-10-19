@@ -205,6 +205,9 @@ fn problems<E>(report: &Report<E>) -> Vec<Problem> {
 /// # Errors
 /// Returns `Err` if an entry's path couldn't exist in a real tree (see
 /// [`InvalidPath`]).
+///
+/// # Panics
+/// Never: every directory in a [`MemoryTree`] can be listed.
 pub fn lint(tree: &[TreeEntry]) -> Result<Outcome, InvalidPath> {
     let mut memory_tree = MemoryTree::new();
     for entry in tree {
@@ -214,7 +217,7 @@ pub fn lint(tree: &[TreeEntry]) -> Result<Outcome, InvalidPath> {
             memory_tree.add_file(&entry.path, &entry.contents)?;
         }
     }
-    let report = flint::run::run(&memory_tree);
+    let report = flint::run::run(&memory_tree).expect("a MemoryTree can always be listed");
     let output: Vec<String> = flint::output::render(&report)
         .into_iter()
         .map(|line| line.text)

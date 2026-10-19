@@ -150,7 +150,7 @@ A Name That Is Not Unicode Fails The Run And Is Named
     ${result}=    Run Flint In Directory    ${dir}
     Should Be Equal As Integers    ${result.rc}    1
     Should Contain    ${result.stderr}
-    ...    menus couldn't be listed: the name "caf\\xE9.txt" isn't valid Unicode
+    ...    Couldn't list menus, so nothing was checked: the name "caf\\xE9.txt" isn't valid Unicode
     Should Not Contain    ${result.stdout}    All files match
 
 

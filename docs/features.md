@@ -11,9 +11,8 @@
 - The directory being checked needs a `.flint` file of its own: without
   one, flint prints `No flint file found` and exits with a non-zero
   status, without searching any further.
-- A folder flint can't list is skipped, with a warning, while searching
-  for `.flint` files — but fails the check of any `.flint` file whose
-  rules look inside it.
+- A folder flint can't list stops the run straight away, with an error
+  naming it, before anything is checked.
 - Each `.flint` file is read as a plain-text **allow-list**: one name per
   line.
 - Anything present on disk that isn't in the allow-list is reported, and

@@ -17,7 +17,7 @@ use std::process::ExitCode;
 use clap::Parser;
 use flint::entry_kind::EntryKind;
 use flint::output::Stream;
-use flint::run::{DirectoryTree, FLINT_FILE_NAME, Report, ScopeStatus, run};
+use flint::run::{DirectoryTree, FLINT_FILE_NAME, run};
 
 // `about` (bare) and `version` (bare) pull from Cargo.toml's `description`
 // and `version` fields, so the --help/--version text stays in sync with
@@ -47,15 +47,21 @@ fn main() -> ExitCode {
         }
     }
 
-    let report = run(&Disk { root });
+    let report = match run(&Disk { root }) {
+        Ok(report) => report,
+        Err(unlisted) => {
+            eprintln!("{}", flint::output::render_unlisted(&unlisted).text);
+            if cfg!(target_os = "macos") && is_macos_private(&unlisted.error) {
+                eprintln!("{MACOS_PRIVATE_HINT}");
+            }
+            return ExitCode::FAILURE;
+        }
+    };
     for line in flint::output::render(&report) {
         match line.stream {
             Stream::Stdout => println!("{}", line.text),
             Stream::Stderr => eprintln!("{}", line.text),
         }
-    }
-    if cfg!(target_os = "macos") && macos_protected_any(&report) {
-        eprintln!("{MACOS_PROTECTED_HINT}");
     }
 
     if report.passed() {
@@ -70,26 +76,15 @@ fn main() -> ExitCode {
 /// ordinary permissions' `EACCES`.
 const EPERM: i32 = 1;
 
-/// Printed once, on macOS, after any listing failed with [`EPERM`].
-const MACOS_PROTECTED_HINT: &str = "macOS keeps some folders private, such as Mail's and Safari's \
+/// Printed on macOS after a listing failed with [`EPERM`].
+const MACOS_PRIVATE_HINT: &str = "macOS keeps some folders private, such as Mail's and Safari's \
 in Library. To check them, give your terminal Full Disk Access in System Settings, \
 under Privacy & Security.";
 
-/// Whether any directory in `report` couldn't be listed for the reason
-/// macOS gives for a folder it keeps private (see [`EPERM`]).
-fn macos_protected_any(report: &Report<io::Error>) -> bool {
-    let in_scopes = report
-        .scopes
-        .iter()
-        .filter_map(|scope| match &scope.status {
-            ScopeStatus::ListError(unlisted) => Some(unlisted),
-            _ => None,
-        });
-    report
-        .skipped
-        .iter()
-        .chain(in_scopes)
-        .any(|unlisted| unlisted.error.raw_os_error() == Some(EPERM))
+/// Whether `error` is the one macOS gives for listing a folder it keeps
+/// private (see [`EPERM`]).
+fn is_macos_private(error: &io::Error) -> bool {
+    error.raw_os_error() == Some(EPERM)
 }
 
 /// The real filesystem under `root`, for [`run`] to walk.
@@ -161,34 +156,11 @@ fn unicode_name(name: OsString) -> io::Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flint::run::{ScopeReport, Unlisted};
-
-    fn unlisted(errno: i32) -> Unlisted<io::Error> {
-        Unlisted {
-            dir: "Library/Mail".to_string(),
-            error: io::Error::from_raw_os_error(errno),
-        }
-    }
-
     #[test]
     fn only_eperm_counts_as_macos_keeping_a_folder_private() {
         const EACCES: i32 = 13;
-        let skipped = |errno| Report {
-            scopes: Vec::new(),
-            skipped: vec![unlisted(errno)],
-        };
-        assert!(macos_protected_any(&skipped(EPERM)));
-        assert!(!macos_protected_any(&skipped(EACCES)));
-
-        let in_scope = |errno| Report {
-            scopes: vec![ScopeReport {
-                scope: String::new(),
-                status: ScopeStatus::ListError(unlisted(errno)),
-            }],
-            skipped: Vec::new(),
-        };
-        assert!(macos_protected_any(&in_scope(EPERM)));
-        assert!(!macos_protected_any(&in_scope(EACCES)));
+        assert!(is_macos_private(&io::Error::from_raw_os_error(EPERM)));
+        assert!(!is_macos_private(&io::Error::from_raw_os_error(EACCES)));
     }
 
     #[test]

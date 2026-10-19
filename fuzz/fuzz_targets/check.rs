@@ -45,7 +45,7 @@ fuzz_target!(|data: &[u8]| {
     // directory, leaving the root with no `.flint` file.)
     let _ = tree.add_file(".flint", flint_text);
 
-    let report = run(&tree);
+    let report = run(&tree).expect("every directory in a MemoryTree can be listed");
     let _ = render(&report);
 });
 

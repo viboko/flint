@@ -22,7 +22,7 @@ pub enum Stream {
     /// Standard output: results.
     Stdout,
     /// Standard error: failures to read or parse a `.flint` file or
-    /// directory, and directories skipped while looking for them.
+    /// directory.
     Stderr,
 }
 
@@ -53,8 +53,8 @@ impl Line {
     }
 }
 
-/// Everything flint prints for `report`, in order: any directory skipped
-/// while looking for `.flint` files, each scope's violations or failure,
+/// Everything flint prints for `report`, in order: each scope's
+/// violations or failure,
 /// then the success message if the run passed — or just an error saying
 /// so if the root has no `.flint` file of its own.
 ///
@@ -69,16 +69,7 @@ pub fn render<E: Display>(report: &Report<E>) -> Vec<Line> {
     }
 
     let qualify_output = report.scopes.len() > 1;
-    let mut lines: Vec<Line> = report
-        .skipped
-        .iter()
-        .map(|Unlisted { dir, error }| {
-            Line::stderr(format!(
-                "Skipped {} while looking for flint files, as it couldn't be listed: {error}",
-                dir_path(dir)
-            ))
-        })
-        .collect();
+    let mut lines = Vec::new();
     let mut printed_violations = false;
 
     for scope in &report.scopes {
@@ -116,6 +107,17 @@ pub fn render<E: Display>(report: &Report<E>) -> Vec<Line> {
         lines.push(Line::stdout("All files match"));
     }
     lines
+}
+
+/// What flint prints when [`crate::run::run`] stops at a directory it
+/// couldn't list.
+#[must_use]
+pub fn render_unlisted<E: Display>(unlisted: &Unlisted<E>) -> Line {
+    Line::stderr(format!(
+        "Couldn't list {}, so nothing was checked: {}",
+        dir_path(&unlisted.dir),
+        unlisted.error
+    ))
 }
 
 /// What flint prints when the directory it checks has no `.flint` file:
@@ -304,7 +306,6 @@ mod tests {
                     status,
                 })
                 .collect(),
-            skipped: Vec::new(),
         }
     }
 
@@ -334,17 +335,16 @@ mod tests {
     }
 
     #[test]
-    fn skipped_directories_are_noted_first_without_failing_the_run() {
-        let mut report = report(vec![("", ScopeStatus::Checked(vec![]))]);
-        report.skipped = vec![
-            unlisted("", "denied"),
-            unlisted("Library/Mail", "Operation not permitted"),
-        ];
+    fn an_unlisted_directory_is_named() {
         assert_eq!(
-            text(&render(&report)),
-            "!Skipped . while looking for flint files, as it couldn't be listed: denied
-!Skipped Library/Mail while looking for flint files, as it couldn't be listed: Operation not permitted
-All files match"
+            render_unlisted(&unlisted("Library/Mail", "Operation not permitted")),
+            Line::stderr(
+                "Couldn't list Library/Mail, so nothing was checked: Operation not permitted"
+            )
+        );
+        assert_eq!(
+            render_unlisted(&unlisted("", "denied")).text,
+            "Couldn't list ., so nothing was checked: denied"
         );
     }
 

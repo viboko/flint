@@ -50,11 +50,10 @@ exactly as they are on disk, including a `.flint` file's own path when a
 run involves more than one.
 
 Anything flint couldn't do goes to standard error instead: a `.flint`
-file it couldn't read or parse, a folder it couldn't list, naming the
-folder and why. flint exits with status `0` when everything matched, and
-`1` when anything didn't or anything failed — except that a folder
-skipped while searching for `.flint` files, which no rule looks inside,
-is only a warning.
+file it couldn't read or parse, or a folder it couldn't list, naming the
+folder and why — which stops the run before anything is checked. flint
+exits with status `0` when everything matched, and `1` when anything
+didn't or anything failed.
 
 ## Command-line arguments
 

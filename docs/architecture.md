@@ -101,7 +101,8 @@ files to merging violations happens in `run.rs`, roughly:
 flowchart LR
     A["main: parse PATH from the command line"] --> R{"run::run:<br/>a .flint file at the root?"}
     R -->|no| C["main: print output::render's lines<br/>(No flint file found)<br/>exit 1"]
-    R -->|yes| B["run::discover_scopes:<br/>find every directory containing a .flint file<br/>(skips symlinked directories, and notes any it can't list)"]
+    R -->|yes| B["run::discover_scopes:<br/>find every directory containing a .flint file<br/>(skips symlinked directories)"]
+    B -->|a directory can't be listed| U["main: print output::render_unlisted's line<br/>(naming it)<br/>exit 1"]
     B --> D["parse_scope:<br/>read + flint_file::parse each scope's .flint"]
     D --> E["for each scope: check_scope"]
     E --> F["scope::ancestor_scopes +<br/>checker::nested_scopes_relative_to"]
