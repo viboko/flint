@@ -26,6 +26,9 @@
   <link rel="manifest" href="favicon/site.webmanifest">
   <link rel="stylesheet" href="style.css">
   <script type="module" src="app.js"></script>
+  <!-- Counts page views with GoatCounter: no cookies, no personal data,
+       and never the link's #fragment, so shared trees stay private. -->
+  <script data-goatcounter="https://viboko-flint.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -36,7 +39,7 @@
     <p class="tagline">Lint a pretend project's files and folders against a <code>.flint</code> file, as you type.</p>
     <nav class="topbar-actions">
       <button type="button" id="share" class="button">Copy link</button>
-      <a class="button" href="https://github.com/viboko/flint#readme">Docs</a>
+      <a class="button" href="https://github.com/viboko/flint#readme" target="_blank" rel="noopener">Docs</a>
     </nav>
   </header>
 
@@ -105,8 +108,8 @@
   </main>
 
   <footer class="footer">
-    <p>flint runs here as WebAssembly, entirely in your browser — nothing you type leaves this page. The output is exactly what the <code>flint</code> command prints for the same files.</p>
-    <p><a href="https://github.com/viboko/flint">Source on GitHub</a> · <a href="https://github.com/viboko/flint/blob/main/docs/flint-file-format.md">.flint file format</a></p>
+    <p>flint runs here as WebAssembly, entirely in your browser — nothing you type leaves this page. The output is exactly what the <code>flint</code> command prints for the same files. Visits are counted, cookie-free, with <a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a>.</p>
+    <p><a href="https://github.com/viboko/flint" target="_blank" rel="noopener">Source on GitHub</a> · <a href="https://github.com/viboko/flint/blob/main/docs/flint-file-format.md" target="_blank" rel="noopener">.flint file format</a></p>
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
