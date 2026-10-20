@@ -5,7 +5,9 @@ left, the `.flint` file being edited in the middle, and flint's output
 below, re-checked on every keystroke. It runs flint itself, compiled to
 WebAssembly, through the same library code the CLI runs over a real
 disk — so it prints exactly what `flint` would for the same files.
-Nothing typed into it leaves the browser.
+Nothing typed into it leaves the browser; the published page only
+counts visits, with [GoatCounter](https://www.goatcounter.com/), which
+sets no cookies and never sees a shared link's `#fragment`.
 
 It's published at <https://flint.viboko.dev/>.
 
