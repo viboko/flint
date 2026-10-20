@@ -125,6 +125,18 @@ the repo pins:
 cargo install --locked --path .
 ```
 
+## Reporting a bug or asking for a feature
+
+[Open an issue](https://github.com/viboko/flint/issues/new) on GitHub.
+For a bug, say what you expected flint to report and what it reported
+instead, and include the output of `flint --version`. The quickest way to show the problem is often a
+[playground](https://flint.viboko.dev/) link: recreate it there and use
+"Copy link", which puts the whole pretend project in the link.
+
+To report a security vulnerability, don't open a public issue; see
+[`SECURITY.md`](SECURITY.md) instead. To propose a change yourself, see
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Development
 
 This project uses [`just`](https://github.com/casey/just) as a task
