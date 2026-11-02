@@ -8,7 +8,7 @@
 robotframework==7.5
 # Linter and formatter for the suite itself — `just robocop`. Needs
 # Python 3.10+, which `just venv` checks for.
-robotframework-robocop==9.1.0
+robotframework-robocop==9.1.2
 # Checks every file in the repo states its copyright and license (the
 # REUSE spec) — `just reuse`. The extra is its pure-Python way of
 # reading files of unknown encoding. Not part of the e2e suite, but
