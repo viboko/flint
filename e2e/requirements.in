@@ -13,4 +13,4 @@ robotframework-robocop==9.1.2
 # REUSE spec) — `just reuse`. The extra is its pure-Python way of
 # reading files of unknown encoding. Not part of the e2e suite, but
 # this is the repo's one pinned, hash-checked Python environment.
-reuse[charset-normalizer]==6.2.0
+reuse[charset-normalizer]==6.3.0
