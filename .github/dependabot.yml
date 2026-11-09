@@ -57,11 +57,14 @@ updates:
         patterns: ["*"]
         update-types: ["patch", "minor"]
 
-  # The e2e suite's Python packages. Dependabot reads the `uv pip
-  # compile` command from requirements.txt's header and reruns it, so
-  # a bump updates requirements.in, the pins of transitive dependencies
-  # and every hash together.
-  - package-ecosystem: "pip"
+  # The e2e suite's Python packages. This has to be "uv", not "pip":
+  # "pip" compiles with pip-compile, which can't do `--universal`, so
+  # it drops the pins for other platforms and Pythons and the Windows
+  # e2e job fails to install. "uv" runs `uv pip compile`, keeping the
+  # `--universal` and `--python-version` from requirements.txt's header,
+  # so a bump updates requirements.in, the pins of transitive
+  # dependencies and every hash together.
+  - package-ecosystem: "uv"
     directory: "/e2e"
     schedule:
       interval: "weekly"
