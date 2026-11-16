@@ -5,10 +5,10 @@
 # not requirements.txt: `just pip-lock` compiles it into
 # requirements.txt, which also pins every transitive dependency and the
 # hash of each file pip may download, and is what `just venv` installs.
-robotframework==7.5
+robotframework==7.5.1
 # Linter and formatter for the suite itself — `just robocop`. Needs
 # Python 3.10+, which `just venv` checks for.
-robotframework-robocop==9.1.2
+robotframework-robocop==9.3.0
 # Checks every file in the repo states its copyright and license (the
 # REUSE spec) — `just reuse`. The extra is its pure-Python way of
 # reading files of unknown encoding. Not part of the e2e suite, but
